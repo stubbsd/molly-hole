@@ -200,10 +200,8 @@ function vehView(o) {
 function drawVehicleUp(ctx, o) { // upright space, origin at vehicle ground point
   const v = vehView(o); if (!v.img) return;
   const h = v.w * v.img.height / v.img.width;
-  if (o.type === 'car' && o.hue > 0.15) ctx.filter = `hue-rotate(${CAR_TINT[Math.floor(o.hue * CAR_TINT.length)]}deg) saturate(${o.hue > 0.85 ? 0.1 : 1})`;
   if (v.flip) ctx.scale(-1, 1);
-  ctx.drawImage(v.img, -v.w / 2, -h * 0.72, v.w, h);
-  ctx.filter = 'none';
+  ctx.drawImage(o.type === 'car' && o.hue > 0.15 ? tinted(v.img, o.hue) : v.img, -v.w / 2, -h * 0.72, v.w, h);
 }
 function drawVehShadow(ctx, o) { // ground space
   ctx.fillStyle = 'rgba(10,15,30,.35)'; ctx.save(); ctx.translate(o.x + 4, o.y + 4); ctx.rotate(o.angle); ctx.fillRect(-o.len / 2, -o.wid / 2, o.len, o.wid); ctx.restore();
@@ -237,8 +235,7 @@ function drawPed(ctx, p, t) {
   ctx.fillStyle = 'rgba(10,15,30,.3)'; ctx.beginPath(); ctx.ellipse(2, 1, 6, 2.5, 0, 0, 7); ctx.fill();
   ctx.strokeStyle = '#2d3442'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-1.5, -9); ctx.lineTo(-1.5 + sw, 0); ctx.moveTo(1.5, -9); ctx.lineTo(1.5 - sw, 0); ctx.stroke();
-  const g = ctx.createLinearGradient(-5, -20, 5, -8); g.addColorStop(0, SHIRT[p.col]); g.addColorStop(1, shade(SHIRT[p.col], 0.7));
-  ctx.fillStyle = g; roundRect(ctx, -4.5, -20, 9, 12, 3); ctx.fill();
+  ctx.fillStyle = SHIRT[p.col]; roundRect(ctx, -4.5, -20, 9, 12, 3); ctx.fill();
   ctx.strokeStyle = SHIRT[p.col]; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(-4.5, -18); ctx.lineTo(-5.5 - sw * 0.5, -11); ctx.moveTo(4.5, -18); ctx.lineTo(5.5 + sw * 0.5, -11); ctx.stroke();
   ctx.fillStyle = ['#f1c9a5', '#c68e65', '#8d5a3b', '#e8b98f'][p.col % 4]; ctx.beginPath(); ctx.arc(0, -24, 4, 0, 7); ctx.fill();
   ctx.fillStyle = ['#3a2a1e', '#1d1d1d', '#a0622c', '#d8b25a'][p.col % 4]; ctx.beginPath(); ctx.arc(0, -25, 4, Math.PI, 0); ctx.fill();
@@ -246,8 +243,7 @@ function drawPed(ctx, p, t) {
 function drawBird(ctx, b, t) {
   ctx.fillStyle = 'rgba(10,15,30,.25)'; ctx.beginPath(); ctx.ellipse(0, 2, 6, 2.5, 0, 0, 7); ctx.fill();
   if (b.kind === 'duck') {
-    const g = ctx.createLinearGradient(0, -8, 0, 2); g.addColorStop(0, '#8a6a4a'); g.addColorStop(1, '#5c452f');
-    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(0, -3, 8, 5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#7a5c3f'; ctx.beginPath(); ctx.ellipse(0, -3, 8, 5, 0, 0, 7); ctx.fill();
     ctx.fillStyle = '#2f7a46'; ctx.beginPath(); ctx.arc(6, -9, 3.5, 0, 7); ctx.fill(); ctx.fillStyle = '#f2b23a'; ctx.fillRect(9, -9.5, 4, 2);
   } else if (b.kind === 'dog') {
     ctx.fillStyle = '#b8834f'; ctx.beginPath(); ctx.ellipse(0, -7, 10, 5, 0, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(9, -12, 5, 0, 7); ctx.fill();
@@ -281,4 +277,41 @@ function castShadow(ctx, img, bx, by, w, h, rot, flip) {
   if (flip) ctx.scale(-1, 1);
   ctx.globalAlpha = 0.38; ctx.drawImage(silhouette(img), -w / 2, -h, w, h);
   ctx.restore();
+}
+
+// ctx.filter is very slow on iPad Safari, so car colour variants are baked once into cached canvases
+const TINT = new Map();
+function tinted(img, hue) {
+  const i = Math.floor(hue * CAR_TINT.length), key = img.src + i; let c = TINT.get(key); if (c) return c;
+  c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const x = c.getContext('2d');
+  x.filter = `hue-rotate(${CAR_TINT[i]}deg) saturate(${hue > 0.85 ? 0.1 : 1})`; x.drawImage(img, 0, 0);
+  TINT.set(key, c); return c;
+}
+// Ground is static, so it is rendered once into 512px tiles at three zoom levels and reused every frame
+const GT = new Map(); let gtFrame = 0;
+function drawGroundCached(ctx, s, ox, oy, view) {
+  const q = s > 1.3 ? 2 : s > 0.65 ? 1 : 0.5, T = 512 / q, pad = 2; gtFrame++;
+  const vx0 = view.x0 + 150, vx1 = view.x1 - 150, vy0 = view.y0 + 150, vy1 = Math.min(view.y1 - 1300, W.SIZE + 600);
+  ctx.setTransform(s, 0, 0, s * TILT, ox, oy); ctx.imageSmoothingEnabled = true;
+  for (let ty = Math.floor(vy0 / T); ty * T < vy1; ty++) for (let tx = Math.floor(vx0 / T); tx * T < vx1; tx++) {
+    const key = q + ':' + tx + ':' + ty; let t = GT.get(key);
+    if (!t) {
+      const c = document.createElement('canvas'); c.width = c.height = 512 + pad * 2; const x = c.getContext('2d');
+      x.setTransform(q, 0, 0, q, -tx * T * q + pad, -ty * T * q + pad);
+      drawGround(x, CITY_FOR_TILES, { x0: tx * T - 260, x1: (tx + 1) * T + 260, y0: ty * T - 260, y1: (ty + 1) * T + 260 });
+      t = { c }; GT.set(key, t);
+      if (GT.size > 48) { let old = null, ok = null; for (const [k2, v] of GT) if (!old || v.u < old.u) { old = v; ok = k2; } GT.delete(ok); }
+    }
+    t.u = gtFrame;
+    ctx.drawImage(t.c, pad, pad, 512, 512, tx * T, ty * T, T + 0.6 / s, T + 0.6 / s);
+  }
+}
+let CITY_FOR_TILES = null;
+function setGroundCity(c) { CITY_FOR_TILES = c; GT.clear(); }
+// crack ring around the hole: drawn once into a sprite, then rotated slowly each frame
+const CRK = new Map();
+function drawCrackSprite(ctx, x, y, R, col, t) {
+  let c = CRK.get(col);
+  if (!c) { c = document.createElement('canvas'); c.width = c.height = 400; const k = c.getContext('2d'); drawCracks(k, 200, 200, 100, col); CRK.set(col, c); }
+  ctx.save(); ctx.translate(x, y); ctx.rotate(t * 0.25); const S = R * 4; ctx.drawImage(c, -S / 2, -S / 2, S, S); ctx.restore();
 }

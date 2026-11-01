@@ -35,3 +35,13 @@ function drawHole(ctx, x, y, R, skinId, t) {
   }
   ctx.restore();
 }
+
+// swirling arms inside the hole so it always feels alive (cheap: a few arcs)
+function drawSwirl(ctx, x, y, R, t) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(-t * 2.2); ctx.lineCap = 'round';
+  for (let i = 0; i < 4; i++) {
+    ctx.rotate(Math.PI / 2); ctx.strokeStyle = i % 2 ? 'rgba(120,200,255,.28)' : 'rgba(255,255,255,.16)'; ctx.lineWidth = Math.max(1.5, R * 0.07);
+    ctx.beginPath(); ctx.arc(R * 0.18, 0, R * 0.55, -0.4, 1.5); ctx.stroke();
+  }
+  ctx.restore();
+}
