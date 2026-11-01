@@ -27,9 +27,12 @@ const cam = { x: 0, y: 0, s: 1 };
 let worldSeed = 7;
 function newWorld(seed) {
   setTheme(curWorld); worldSeed = seed || 7 + Math.floor(Math.random() * 1000);
-  city = buildCity(worldSeed); city.objs.forEach((o, i) => { o.uid = i; }); city.nObjs = city.objs.length;
+  city = buildCity(worldSeed);
+  { let k = 0; city.objs = city.objs.filter(o => o.landmark || o.type === 'coin' || o.type === 'gift' || o.size >= 3 || (k++ % 5) < 2); } // basics: keep 2 in 5 small props, every building
+  city.peds = city.peds.filter((_, i) => i % 2 === 0); city.birds = city.birds.filter((_, i) => i % 3 === 0); // fewer things wandering about
+  city.objs.forEach((o, i) => { o.uid = i; }); city.nObjs = city.objs.length;
   objs = city.objs; peds = city.peds; birds = city.birds; setGroundCity(city); critterQ = [];
-  vehicles = []; for (let i = 0; i < 34; i++) vehicles.push(spawnVehicle(city, true));
+  vehicles = []; for (let i = 0; i < 12; i++) vehicles.push(spawnVehicle(city, true));
   falling = []; parts = []; respawnQ = [];
 }
 let lastMode = null, curWorld = 'city', lastWorld = 'city';
@@ -273,7 +276,7 @@ function update(dt) {
   if (!AUTOPLAY) { // steer: direction = finger offset from the press point, speed grows with the offset
     hole.tx = hole.x; hole.ty = hole.y;
     if (fingerDown) { const vx = lastPX - anchorX, vy = lastPY - anchorY, L = Math.hypot(vx, vy);
-      if (L > 6) { const sp = (240 + hole.R * 3) * Math.min(1, (L - 6) / (STICK * 0.6 - 6)), wy = vy / TILT, n = Math.hypot(vx, wy);
+      if (L > 6) { const sp = (210 + hole.R * 2.7) * Math.min(1, (L - 6) / (STICK * 0.6 - 6)), wy = vy / TILT, n = Math.hypot(vx, wy);
         hole.tx = clamp(hole.x + vx / n * sp * dt, 30, W.SIZE - 30); hole.ty = clamp(hole.y + wy / n * sp * dt, 30, W.SIZE - 30); } } }
   const dx = hole.tx - hole.x, dy = hole.ty - hole.y, d = Math.hypot(dx, dy), maxV = (AUTOPLAY ? 380 + hole.R * 3 : 1e5) * dt;
   // glued to the finger: closes ~95% of the gap in 0.15s; the cap only stops wild teleports on a jump-tap
@@ -315,7 +318,7 @@ function update(dt) {
     if (ringT >= RING_T) { ringDone = true; paused = true; fingerDown = false; activeId = null; hideStick(); show('timeup'); } // nothing fails: Continue or Exit
   }
   if (!ending && (snapT += dt) > 4) { snapT = 0; saveSnap(); }
-  if (ending) { if (ending > 3) clearSnap(); ending -= dt; if (Math.random() < dt * 6) firework(); if (ending <= 0) { ending = 0; playing = false; $('endStars').textContent = '+' + runStars; $('endCoins').textContent = '+' + runCoins; $('endCoinsPill').classList.toggle('hidden', !runCoins); show('end'); } }
+  if (ending) { if (ending > 3) clearSnap(); ending -= dt; if (Math.random() < dt * 1.5) firework(); if (ending <= 0) { ending = 0; playing = false; $('endStars').textContent = '+' + runStars; $('endCoins').textContent = '+' + runCoins; $('endCoinsPill').classList.toggle('hidden', !runCoins); show('end'); } }
 
   // camera follows hole, zooms out as it grows
   const mn = Math.min(Wd, Ht), base = mn / 330, want = Math.min(base, mn * 0.25 / (2 * hole.R)); // hole diameter <= 1/4 of the short side
@@ -344,7 +347,7 @@ window.__molly = { vehicles: () => vehicles.map(v => ({ type: v.type, vspr: v.vs
 function startFall(o) {
   o.state = 'fall'; o.ft = 0; o.dur = 0.6 + o.size * 0.1; o.sx = o.x; o.sy = o.y; o.spin = (Math.random() - 0.5) * 2.4; falling.push(o);
   if (o.critter) Sfx.scream(!o.ped); else Sfx.swallow(o.size, save.skin);
-  if (parts.length < MAXP - 20) { const sk = SKINS.find(s => s.id === save.skin); for (let i = 0; i < 6 + o.size; i++) { const a = i / (6 + o.size) * 6.283; parts.push({ x: o.x, y: o.y, vx: Math.cos(a) * (120 + o.size * 25), vy: Math.sin(a) * (120 + o.size * 25), life: 0.5, col: i % 2 ? sk.rim[0] : '#ffffff', sz: 2 + o.size * 0.6 }); } }
+  if (parts.length < MAXP - 20) { const sk = SKINS.find(s => s.id === save.skin); for (let i = 0; i < 0; i++) { const a = i / (6 + o.size) * 6.283; parts.push({ x: o.x, y: o.y, vx: Math.cos(a) * (120 + o.size * 25), vy: Math.sin(a) * (120 + o.size * 25), life: 0.5, col: i % 2 ? sk.rim[0] : '#ffffff', sz: 2 + o.size * 0.6 }); } }
 }
 let swallowed = 0, scored = 0; const pops = [];
 function finishFall(o) {
@@ -366,7 +369,7 @@ function finishFall(o) {
     return;
   }
   if (hole.level < 8) {
-    pops.push({ x: hole.x, y: hole.y, t: 0, txt: '+' + (o.size * o.size + 1) }); if (pops.length > 8) pops.shift();
+    if (false) pops.push({ x: hole.x, y: hole.y, t: 0, txt: '+' + (o.size * o.size + 1) }); if (pops.length > 8) pops.shift();
     hole.pts += o.size * o.size + 1; scored++; hole.gulp = Math.min(1, 0.4 + o.size * 0.08); // +1 so small early snacks always visibly fill the bar
     checkLevel();
   }
@@ -376,7 +379,7 @@ function checkLevel() {
   if (hole.level < 8 && mode !== 'order') {
     if (hole.pts >= LEVEL_NEED[hole.level]) {
       hole.pts -= LEVEL_NEED[hole.level]; hole.level++; hole.pulse = 1; Sfx.grow(); addStars(1);
-      for (let i = 0; i < 40 && parts.length < MAXP; i++) { const a = Math.random() * 7; parts.push({ x: hole.x, y: hole.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, life: 1, col: '#ffffff', sz: 4 }); }
+      for (let i = 0; i < 12 && parts.length < MAXP; i++) { const a = i / 12 * 6.283; parts.push({ x: hole.x, y: hole.y, vx: Math.cos(a) * 160, vy: Math.sin(a) * 160, life: 1, col: '#ffffff', sz: 4 }); }
       if (hole.level >= 8) hole.pts = 0;
     }
   }
