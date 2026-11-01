@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 78"><defs>
+<filter id="t" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".09" numOctaves="3" seed="4"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 -.1"/><feComposite in2="SourceGraphic" operator="in"/><feBlend in="SourceGraphic" mode="multiply"/></filter>
+<filter id="b"><feGaussianBlur stdDeviation="2.4"/></filter>
+<linearGradient id="w" x1="0" x2="1"><stop offset="0" stop-color="#6d6255"/><stop offset=".35" stop-color="#a3927b"/><stop offset=".7" stop-color="#857563"/><stop offset="1" stop-color="#4f463d"/></linearGradient>
+</defs>
+<ellipse cx="54" cy="68" rx="46" ry="9" fill="#1d2a14" opacity=".45" filter="url(#b)"/>
+<path d="M5 38v18c0 10 20 17 45 17s45-7 45-17V38z" fill="url(#w)" filter="url(#t)"/>
+<g stroke="#3e352c" stroke-width=".9" opacity=".55" fill="none"><path d="M18 49v13M33 52v15M50 53v16M67 52v15M82 49v13M8 54c10 6 25 8 42 8s32-2 42-8"/></g>
+<path d="M9 61c4 4 9 6 13 6l-3-6zM74 66c6-1 12-3 16-6l-6-1z" fill="#5c7a2f" opacity=".85"/>
+<ellipse cx="50" cy="38" rx="45" ry="31" fill="#b29f7f" filter="url(#t)"/>
+<ellipse cx="50" cy="37" rx="45" ry="31" fill="none" stroke="#e6d6b4" stroke-width="1" opacity=".5"/>
+</svg>

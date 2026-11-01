@@ -59,11 +59,11 @@ svg{width:55%;height:55%;fill:#fff;stroke:#fff}
 #mapScroll::-webkit-scrollbar{display:none}
 #mapInner{position:relative;height:100%;width:max(100vw,177.78vh);aspect-ratio:16/9;background:url(../assets/map/start-map.webp) center/100% 100% no-repeat;--s:max(64px,min(7.6vh*1.7778,120px))}
 #mapPath{display:none}
-.stop{position:absolute;width:var(--s);height:calc(var(--s)*.78);margin:calc(var(--s)*-.39) 0 0 calc(var(--s)*-.5);border-radius:50%;padding:0;border:0;background:radial-gradient(ellipse at 50% 35%,#7d6c58,#4d4033 70%);box-shadow:0 calc(var(--s)*.09) 0 #2f271f,0 calc(var(--s)*.16) calc(var(--s)*.2) rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}
-.stop .face{width:84%;height:80%;margin-top:-8%;border-radius:50%;background:radial-gradient(circle at 38% 30%,#fff3b0,#f6c934 45%,#c48a12 80%);box-shadow:inset 0 -5px 0 #9a6a07,inset 0 3px 0 #fff6c8,0 0 0 3px #b9851a;display:flex;align-items:center;justify-content:center;font-size:calc(var(--s)*.4);text-shadow:0 2px 0 rgba(0,0,0,.2)}
-.stop.gift .face{background:radial-gradient(circle at 38% 30%,#fff,#ffd8ea 45%,#ff8ab8 85%);box-shadow:inset 0 -5px 0 #c4507f,inset 0 3px 0 #fff,0 0 0 3px #d9608f;font-size:calc(var(--s)*.5)}
-.stop.locked .face{background:radial-gradient(circle at 38% 30%,#f3f6fb,#c3cbd8 55%,#97a2b4);box-shadow:inset 0 -5px 0 #7c879a,inset 0 3px 0 #fff,0 0 0 3px #6f7a8d;font-size:calc(var(--s)*.38)}
-.stop .lock{width:78%;height:78%;margin-top:4%;filter:drop-shadow(0 2px 1px rgba(40,50,70,.35))}
+.stop{position:absolute;width:var(--s);height:calc(var(--s)*.78);margin:calc(var(--s)*-.39) 0 0 calc(var(--s)*-.5);border-radius:50%;padding:0;border:0;background:url(../assets/map/plinth.svg) center/100% 100% no-repeat;box-shadow:none;display:flex;align-items:center;justify-content:center}
+.stop .face{width:80%;height:72%;margin-top:-20%;border-radius:50%;background:radial-gradient(ellipse at 40% 32%,#ffe9a6,#e9b847 48%,#b07d24 85%);box-shadow:inset 0 -3px 4px rgba(90,55,10,.55),inset 0 2px 3px rgba(255,248,220,.7),0 0 0 2.5px #8c6a3a,0 0 0 4px rgba(239,226,196,.6);display:flex;align-items:center;justify-content:center;font-size:calc(var(--s)*.36);text-shadow:0 2px 2px rgba(60,35,0,.3)}
+.stop.gift .face{background:radial-gradient(ellipse at 40% 32%,#fff1e6,#f2b7c6 50%,#c47a8e 88%);box-shadow:inset 0 -3px 4px rgba(120,50,70,.5),inset 0 2px 3px #fff8f0,0 0 0 2.5px #8c6a3a,0 0 0 4px rgba(239,226,196,.6);font-size:calc(var(--s)*.44)}
+.stop.locked .face{background:radial-gradient(ellipse at 40% 30%,#a9a294,#7a7366 55%,#4f493f);box-shadow:inset 0 -3px 5px rgba(30,25,18,.6),inset 0 2px 3px rgba(230,220,200,.45),0 0 0 2.5px #8c6a3a,0 0 0 4px rgba(239,226,196,.5)}
+.stop .lock{width:86%;height:86%;margin-top:4%;filter:saturate(.9)}
 .stop .wb{position:absolute;right:-18%;top:-34%;font-size:calc(var(--s)*.38);filter:drop-shadow(0 3px 3px rgba(0,0,0,.4))}
 .stop .st{position:absolute;left:50%;top:calc(var(--s)*-.42);transform:translateX(-50%);font-size:calc(var(--s)*.28);color:#ffd23a;-webkit-text-stroke:1.5px #8a5a00;white-space:nowrap;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
 .stop.next .face{animation:pulse 1.1s infinite}
