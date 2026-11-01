@@ -27,8 +27,8 @@ const LEVEL_NEED = [0, 8, 50, 180, 420, 750, 1150, 1600, 1e9]; // ~3-4 min City 
 let THEME = 'city';
 const THEMES = {
   city:     { kinds: [['highrise', .45], ['office', .6], ['shops', .85], ['plaza', 1]], furn: [['lamp', .22], ['bin', .42], ['cone', .58], ['tree', .66], ['bench', .70]], veh: [['car', .62], ['taxi', .82], ['bus', 1]], spr: {}, marks: true },
-  district: { kinds: [['shops', .45], ['plaza', .7], ['office', .85], ['highrise', 1]], furn: [['lamp', .25], ['bin', .45], ['tree', .62], ['bench', .72]], veh: [['car', .5], ['taxi', .72], ['tram', 1]], vspr: { tram: ['b-tram', 112, 1], nboat: ['b-nboat', 124] }, spr: {}, marks: true, canal: true },
-  village:  { kinds: [['shops', .5], ['office', .66], ['plaza', .86], ['farm', 1]], furn: [['tree', .2], ['bin', .3], ['cone', .45], ['bench', .52], ['lamp', .58]], veh: [['car', .45], ['tractor', .75], ['vbus', 1]], spr: { tree: ['v-oak', 66], bin: ['v-postbox', 16], cone: ['v-flowers', 30], kiosk: ['v-hay', 80] }, vspr: { tractor: ['v-tractor', 52], vbus: ['v-bus', 104, 1] }, organic: { w: 62, col: '#bfa679', edge: '#8f7a52' } },
+  district: { kinds: [['shops', .45], ['plaza', .7], ['office', .85], ['highrise', 1]], furn: [['lamp', .25], ['bin', .45], ['tree', .62], ['bench', .72]], veh: [['car', .5], ['taxi', .72], ['tram', 1]], vspr: { tram: ['b-tram', 112, 1], nboat: ['b-nboat', 124] }, flat: true, spr: { shop: ['b-terrace', 128], office: ['b-warehouse', 200], tower: ['b-clock', 120] }, marks: true, canal: true },
+  village:  { kinds: [['shops', .5], ['office', .66], ['plaza', .86], ['farm', 1]], furn: [['tree', .2], ['bin', .3], ['cone', .45], ['bench', .52], ['lamp', .58]], veh: [['car', .45], ['tractor', .75], ['vbus', 1]], flat: true, spr: { shop: ['v-cottage', 128], office: ['v-pub', 180], tower: ['v-church', 270], tree: ['v-oak', 66], bin: ['v-postbox', 16], cone: ['v-flowers', 30], kiosk: ['v-hay', 80] }, vspr: { tractor: ['v-tractor', 52], vbus: ['v-bus', 104, 1] }, organic: { w: 62, col: '#bfa679', edge: '#8f7a52' } },
   desert:   { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['beach', 1]], furn: [['tree', .22], ['bin', .36], ['cone', .46], ['bench', .52]], veh: [['raptor', .5], ['stego', .78], ['trike', 1]], spr: { bin: ['d-crate', 22], cone: ['m-rock', 14], bench: ['d-boat', 44], tree: ['d-palm', 52], kiosk: ['d-lighthouse', 60], shop: ['d-hut', 125], office: ['d-volcano', 230], tower: ['d-brachio', 300] }, vspr: { raptor: ['d-raptor', 58], stego: ['d-stego', 100], trike: ['d-trike', 104] }, flat: true, organic: { w: 70, col: '#f2e2b4', edge: '#cdb27a' } },
   moon:     { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['craters', 1]], furn: [['cone', .2], ['bin', .34], ['tree', .44], ['bench', .54]], veh: [['rover', .55], ['shuttle', 1]], spr: { cone: ['m-rock', 16], bin: ['m-crate', 22], bench: ['m-solar', 38], tree: ['m-dish', 44], kiosk: ['m-dome', 90], shop: ['m-hab', 150], office: ['m-greenhouse', 210], tower: ['m-rocket', 170] }, vspr: { rover: ['m-rover', 60], shuttle: ['m-shuttle', 110] }, flat: true, organic: { w: 62, col: '#6c6f78', edge: '#4f525a', tyre: 1 } },
 };
@@ -177,7 +177,7 @@ function placeVehicle(o) {
 // Angled camera: the ground is foreshortened by TILT; buildings/props are upright sprites.
 const TILT = 0.74;
 const SPR = {};
-const SPR_NAMES = ['v-oak', 'c-sheep', 'c-crab', 'c-alien', 'v-bus', 'b-tram', 'b-nboat', 'v-hay', 'v-postbox', 'v-flowers', 'v-tractor', 'd-palm', 'd-crate', 'd-hut', 'd-boat', 'd-raptor', 'd-trike', 'd-stego', 'd-brachio', 'd-lighthouse', 'd-volcano', 'm-rock', 'm-crate', 'm-dish', 'm-solar', 'm-rover', 'm-shuttle', 'm-dome', 'm-rocket', 'm-hab', 'm-greenhouse', 'hr-glass', 'hr-stone', 'hr-dark', 'car-side', 'car-front', 'car-rear', 'taxi-side', 'taxi-front', 'taxi-rear', 'bus-side', 'bus-front', 'bus-rear', 'office-glass', 'office-stone', 'office-grey', 'tower', 'shop', 'kiosk', 'tree', 'car', 'taxi', 'bus', 'bin', 'lamp', 'bench', 'cone'];
+const SPR_NAMES = ['p-0', 'p-1', 'p-2', 'p-3', 'p-4', 'p-5', 'p-astro0', 'p-astro1', 'v-cottage', 'v-pub', 'v-church', 'b-terrace', 'b-warehouse', 'b-clock', 'v-oak', 'c-sheep', 'c-crab', 'c-alien', 'v-bus', 'b-tram', 'b-nboat', 'v-hay', 'v-postbox', 'v-flowers', 'v-tractor', 'd-palm', 'd-crate', 'd-hut', 'd-boat', 'd-raptor', 'd-trike', 'd-stego', 'd-brachio', 'd-lighthouse', 'd-volcano', 'm-rock', 'm-crate', 'm-dish', 'm-solar', 'm-rover', 'm-shuttle', 'm-dome', 'm-rocket', 'm-hab', 'm-greenhouse', 'hr-glass', 'hr-stone', 'hr-dark', 'car-side', 'car-front', 'car-rear', 'taxi-side', 'taxi-front', 'taxi-rear', 'bus-side', 'bus-front', 'bus-rear', 'office-glass', 'office-stone', 'office-grey', 'tower', 'shop', 'kiosk', 'tree', 'car', 'taxi', 'bus', 'bin', 'lamp', 'bench', 'cone'];
 function loadSprites() {
   return Promise.all(SPR_NAMES.map(n => new Promise(res => { const i = new Image(); i.onload = () => { SPR[n] = i; res(); }; i.onerror = res; i.src = 'assets/sprites/' + n + '.png'; })));
 }
@@ -206,11 +206,11 @@ function makePatterns(ctx) {
   const plaza = noiseCanvas(96, G.plaza, 10, (x, s) => { if (THEME !== 'city' && THEME !== 'district') return craters(x, s); x.strokeStyle = 'rgba(120,105,90,.3)'; x.lineWidth = 1.5; for (let i = 0; i <= s; i += 24) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, s); x.moveTo(0, i); x.lineTo(s, i); x.stroke(); } x.fillStyle = 'rgba(160,140,120,.25)'; x.fillRect(0, 0, 24, 24); x.fillRect(48, 48, 24, 24); });
   const grass = noiseCanvas(96, G.grass, 30, (x, s) => { for (let i = 0; i < 200; i++) { x.fillStyle = `rgba(${Math.random() < .5 ? '40,90,30' : '150,200,100'},.25)`; x.fillRect(Math.random() * s, Math.random() * s, 2, 3); } });
   PAT = {};
-  const O = { village: [[92, 140, 62], [118, 160, 78], [150, 128, 84], [184, 160, 116]], desert: [[226, 202, 150], [236, 216, 170], [244, 230, 196], [214, 188, 136]], moon: [[132, 132, 138], [156, 156, 162], [104, 104, 112], [96, 98, 106]] }[THEME];
+  const O = { village: [[92, 140, 62], [118, 160, 78], [150, 128, 84], [184, 160, 116]], desert: [[226, 202, 150], [236, 216, 170], [244, 230, 196], [236, 206, 150]], moon: [[132, 132, 138], [156, 156, 162], [104, 104, 112], [96, 98, 106]] }[THEME];
   if (O) {
     const blade = (x, s, R) => { for (let i = 0; i < 900; i++) { const px = R() * s, py = R() * s; x.strokeStyle = R() < .5 ? 'rgba(40,80,20,.35)' : 'rgba(190,220,120,.3)'; x.lineWidth = 1; x.beginPath(); x.moveTo(px, py); x.lineTo(px + (R() - .5) * 3, py - 3 - R() * 4); x.stroke(); } };
     const ripple = (x, s, R) => { x.strokeStyle = 'rgba(150,115,60,.18)'; x.lineWidth = 2; for (let i = 0; i < 26; i++) { const y = R() * s; x.beginPath(); for (let k = 0; k <= s; k += 8) x.lineTo(k, y + Math.sin(k / 22 + i) * 4); x.stroke(); } };
-    const pebble = (x, s, R) => { for (let i = 0; i < 260; i++) { x.fillStyle = R() < .5 ? 'rgba(60,45,30,.25)' : 'rgba(255,245,225,.22)'; x.beginPath(); x.ellipse(R() * s, R() * s, 1 + R() * 2.5, 1 + R() * 1.8, R() * 3, 0, 7); x.fill(); } };
+    const pebble = (x, s, R) => { for (let i = 0; i < 260; i++) { x.fillStyle = R() < .5 ? (THEME === 'desert' ? 'rgba(165,110,50,.3)' : 'rgba(60,45,30,.25)') : 'rgba(255,245,225,.22)'; x.beginPath(); x.ellipse(R() * s, R() * s, 1 + R() * 2.5, 1 + R() * 1.8, R() * 3, 0, 7); x.fill(); } };
     const pits = (x, s, R) => { for (let i = 0; i < 26; i++) { const px = R() * s, py = R() * s, r = 2 + R() * 10; x.fillStyle = 'rgba(40,40,50,.22)'; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill(); x.strokeStyle = 'rgba(255,255,255,.2)'; x.lineWidth = 1.5; x.beginPath(); x.arc(px - 1, py - 1, r, 3.4, 5.6); x.stroke(); } pebble(x, s, R); };
     const ground = THEME === 'village' ? blade : THEME === 'desert' ? ripple : pits;
     PAT.obase = ctx.createPattern(richTex(256, O[0], 11, ground), 'repeat');
@@ -227,7 +227,7 @@ function richTex(size, base, seed, detail) {
   const R = () => (r = (r * 16807) % 2147483647) / 2147483647;
   for (const [n, rad, a] of [[14, 60, .10], [40, 26, .09], [160, 8, .08]]) for (let i = 0; i < n; i++) {
     const px = R() * size, py = R() * size, rr = rad * (0.6 + R()), lt = R() < .5, g = x.createRadialGradient(px, py, 0, px, py, rr);
-    g.addColorStop(0, lt ? `rgba(255,248,220,${a})` : `rgba(20,25,10,${a})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    g.addColorStop(0, lt ? `rgba(255,248,220,${a})` : (THEME === 'desert' ? `rgba(170,105,40,${a})` : `rgba(20,25,10,${a})`)); g.addColorStop(1, 'rgba(0,0,0,0)');
     for (const ox of [-size, 0, size]) for (const oy of [-size, 0, size]) { x.save(); x.translate(ox, oy); x.fillStyle = g; x.fillRect(px - rr, py - rr, rr * 2, rr * 2); x.restore(); }
   }
   if (detail) detail(x, size, R); return c;
@@ -305,8 +305,9 @@ function drawOrganicGround(ctx, city, view) {
   // tracks: soft dark verge, textured surface, worn centre
   ctx.lineCap = ctx.lineJoin = 'round';
   const trace = p => { ctx.beginPath(); p.pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke(); };
-  for (const [w, st, a] of [[O.w + 22, 'rgba(40,30,15,1)', .08], [O.w + 10, 'rgba(40,30,15,1)', .12], [O.w, PAT.opath, 1]]) { ctx.globalAlpha = a; ctx.strokeStyle = st; ctx.lineWidth = w; city.paths.forEach(trace); }
+  for (const [w, st, a] of [[O.w + 22, THEME === 'desert' ? 'rgba(170,110,40,1)' : 'rgba(40,30,15,1)', .08], [O.w + 10, THEME === 'desert' ? 'rgba(170,110,40,1)' : 'rgba(40,30,15,1)', .12], [O.w, PAT.opath, 1]]) { ctx.globalAlpha = a; ctx.strokeStyle = st; ctx.lineWidth = w; city.paths.forEach(trace); }
   ctx.globalAlpha = 1;
+  if (THEME === 'desert') { ctx.strokeStyle = 'rgba(232,170,95,.42)'; ctx.lineWidth = O.w; city.paths.forEach(trace); }
   if (O.tyre) { ctx.strokeStyle = 'rgba(40,42,50,.35)'; ctx.lineWidth = 6; }
   else { ctx.strokeStyle = THEME === 'village' ? 'rgba(90,130,50,.35)' : 'rgba(255,250,235,.18)'; ctx.lineWidth = THEME === 'village' ? 8 : 18; }
   for (const p of city.paths) for (const off of O.tyre ? [-14, 14] : [0]) { ctx.beginPath(); p.pts.forEach((q, i, a) => { const n = a[Math.min(i + 1, a.length - 1)], m = a[Math.max(i - 1, 0)], dx = n[0] - m[0], dy = n[1] - m[1], l = Math.hypot(dx, dy) || 1, x = q[0] - dy / l * off, y = q[1] + dx / l * off; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); }
@@ -385,6 +386,12 @@ function drawObj(ctx, o) { // generic, used for falling items (ground space)
 }
 // people and birds in upright space
 function drawPed(ctx, p, t) {
+  const im = SPR[THEME === 'moon' ? 'p-astro' + (p.col % 2) : 'p-' + (p.col % 6)];
+  if (im) { // painted person: walk bob + slight sway, faces the way they walk
+    const ph = t * (p.run ? 16 : 9) + p.t * 50, h = 30, w = h * im.width / im.height;
+    ctx.fillStyle = 'rgba(10,15,30,.28)'; ctx.beginPath(); ctx.ellipse(2, 1, 7, 2.6, 0, 0, 7); ctx.fill();
+    ctx.save(); if (p.sp < 0) ctx.scale(-1, 1); ctx.rotate(Math.sin(ph) * 0.05); ctx.drawImage(im, -w / 2, -h - Math.abs(Math.sin(ph)) * 1.5, w, h); ctx.restore(); return;
+  }
   const ph = t * (p.run ? 16 : 9) + p.t * 50, sw = Math.sin(ph) * (p.run ? 3 : 2);
   ctx.fillStyle = 'rgba(10,15,30,.3)'; ctx.beginPath(); ctx.ellipse(2, 1, 6, 2.5, 0, 0, 7); ctx.fill();
   ctx.strokeStyle = '#2d3442'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
