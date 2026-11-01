@@ -20,7 +20,7 @@ const TYPES = {
 };
 const HOLE_R = [0, 18, 24, 32, 42, 62, 88, 122, 168];
 // City Run tuned for hand play in a few minutes (points per item = size^2)
-const LEVEL_NEED = [0, 5, 20, 60, 130, 220, 330, 460, 1e9];
+const LEVEL_NEED = [0, 8, 50, 180, 420, 750, 1150, 1600, 1e9]; // ~3-4 min City Run by hand
 
 function rng(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
 
@@ -42,14 +42,15 @@ function buildCity(seed = 7) {
     blocks.push({ x0, y0, s: inner, kind });
     // pavement furniture on all four edges
     const e = W.PAVE / 2;
-    for (let k = 30; k < inner - 20; k += 45) {
+    for (let k = 26; k < inner - 20; k += 36) {
       const pts = [[x0 + k, y0 + e], [x0 + k, y0 + inner - e], [x0 + e, y0 + k], [x0 + inner - e, y0 + k]];
       for (const [px, py] of pts) {
         const v = R();
         if (v < 0.22) objs.push(makeObj('lamp', px, py));
         else if (v < 0.42) objs.push(makeObj('bin', px, py, { hue: R() < 0.5 ? 0 : 1 }));
         else if (v < 0.58) objs.push(makeObj('cone', px, py));
-        else if (v < 0.62) objs.push(makeObj('tree', px, py, { hue: R() }));
+        else if (v < 0.66) objs.push(makeObj('tree', px, py, { hue: R() }));
+        else if (v < 0.70) objs.push(makeObj('bench', px, py));
       }
     }
     const ins = W.PAVE + 6, a = x0 + ins, b = y0 + ins, s = inner - ins * 2;
@@ -313,5 +314,5 @@ const CRK = new Map();
 function drawCrackSprite(ctx, x, y, R, col, t) {
   let c = CRK.get(col);
   if (!c) { c = document.createElement('canvas'); c.width = c.height = 400; const k = c.getContext('2d'); drawCracks(k, 200, 200, 100, col); CRK.set(col, c); }
-  ctx.save(); ctx.translate(x, y); ctx.rotate(t * 0.25); const S = R * 4; ctx.drawImage(c, -S / 2, -S / 2, S, S); ctx.restore();
+  ctx.save(); ctx.translate(x, y); ctx.rotate(t * 0.6); const S = R * 4 * (1 + Math.sin(t * 3) * 0.04); ctx.drawImage(c, -S / 2, -S / 2, S, S); ctx.restore();
 }

@@ -38,10 +38,14 @@ function drawHole(ctx, x, y, R, skinId, t) {
 
 // swirling arms inside the hole so it always feels alive (cheap: a few arcs)
 function drawSwirl(ctx, x, y, R, t) {
-  ctx.save(); ctx.translate(x, y); ctx.rotate(-t * 2.2); ctx.lineCap = 'round';
-  for (let i = 0; i < 4; i++) {
-    ctx.rotate(Math.PI / 2); ctx.strokeStyle = i % 2 ? 'rgba(120,200,255,.28)' : 'rgba(255,255,255,.16)'; ctx.lineWidth = Math.max(1.5, R * 0.07);
-    ctx.beginPath(); ctx.arc(R * 0.18, 0, R * 0.55, -0.4, 1.5); ctx.stroke();
+  ctx.save(); ctx.translate(x, y); ctx.lineCap = 'round';
+  // two counter-rotating layers of spiral arms + a sparkle ring sucked toward the middle
+  for (const [n, sp, a0, r0, w] of [[6, -2.6, .42, .62, .09], [4, 1.5, .26, .38, .06]]) {
+    ctx.save(); ctx.rotate(t * sp);
+    for (let i = 0; i < n; i++) { ctx.rotate(Math.PI * 2 / n); ctx.strokeStyle = i % 2 ? `rgba(120,210,255,${a0})` : `rgba(255,255,255,${a0 * 0.7})`; ctx.lineWidth = Math.max(1.5, R * w); ctx.beginPath(); ctx.arc(R * 0.2, 0, R * r0, -0.5, 1.4); ctx.stroke(); }
+    ctx.restore();
   }
+  ctx.fillStyle = 'rgba(200,240,255,.8)';
+  for (let i = 0; i < 10; i++) { const ph = (t * 0.7 + i / 10) % 1, rr = R * 0.92 * (1 - ph), a = i * 2.4 - t * 3 - ph * 4; ctx.globalAlpha = 1 - ph; ctx.beginPath(); ctx.arc(Math.cos(a) * rr, Math.sin(a) * rr, Math.max(1, R * 0.035), 0, 7); ctx.fill(); }
   ctx.restore();
 }

@@ -122,10 +122,11 @@ function update(dt) {
   if (AUTOPLAY) autoSteer();
   // hole glides toward target (smoothed, speed-capped)
   if (fingerDown && !AUTOPLAY) { const w = screenToWorld(lastPX, lastPY); hole.tx = clamp(w.x, 30, W.SIZE - 30); hole.ty = clamp(w.y, 30, W.SIZE - 30); }
-  const dx = hole.tx - hole.x, dy = hole.ty - hole.y, d = Math.hypot(dx, dy), maxV = (230 + hole.R * 2.2) * dt;
-  if (d > 0.01) { const k = Math.min(1, maxV / d); hole.x += dx * k; hole.y += dy * k; }
+  const dx = hole.tx - hole.x, dy = hole.ty - hole.y, d = Math.hypot(dx, dy), maxV = (700 + hole.R * 4) * dt;
+  // glued to the finger: closes ~95% of the gap in 0.15s; the cap only stops wild teleports on a jump-tap
+  if (d > 0.01) { const k = Math.min(1, maxV / d, 1 - Math.exp(-20 * dt)); hole.x += dx * k; hole.y += dy * k; }
   const targetR = HOLE_R[hole.level];
-  hole.R += (targetR - hole.R) * Math.min(1, dt * 4); hole.pulse = Math.max(0, hole.pulse - dt * 2);
+  hole.R += (targetR - hole.R) * Math.min(1, dt * 4); hole.pulse = Math.max(0, hole.pulse - dt * 2); hole.gulp = Math.max(0, (hole.gulp || 0) - dt * 3);
 
   // swallow / teeter
   const all = objs.concat(vehicles);
@@ -178,17 +179,18 @@ window.__molly = { hole, get mode() { return mode; }, get playing() { return pla
 function startFall(o) {
   o.state = 'fall'; o.ft = 0; o.dur = 0.6 + o.size * 0.1; o.sx = o.x; o.sy = o.y; o.spin = (Math.random() - 0.5) * 2.4; falling.push(o);
   Sfx.swallow(o.size, save.skin);
-  if (parts.length < 120) for (let i = 0; i < 4 + o.size; i++) parts.push({ x: o.x, y: o.y, vx: (Math.random() - 0.5) * 160, vy: (Math.random() - 0.5) * 160, life: 0.6, col: SKINS.find(s => s.id === save.skin).rim[1], sz: 2 + o.size * 0.5 });
+  if (parts.length < 140) { const sk = SKINS.find(s => s.id === save.skin); for (let i = 0; i < 6 + o.size; i++) { const a = i / (6 + o.size) * 6.283; parts.push({ x: o.x, y: o.y, vx: Math.cos(a) * (120 + o.size * 25), vy: Math.sin(a) * (120 + o.size * 25), life: 0.5, col: i % 2 ? sk.rim[0] : '#ffffff', sz: 2 + o.size * 0.6 }); } }
+  if (false) for (let i = 0; i < 0; i++) parts.push({ x: o.x, y: o.y, vx: (Math.random() - 0.5) * 160, vy: (Math.random() - 0.5) * 160, life: 0.6, col: SKINS.find(s => s.id === save.skin).rim[1], sz: 2 + o.size * 0.5 });
 }
 let swallowed = 0, scored = 0;
 function finishFall(o) {
   swallowed++;
-  if (o.critter) { critterQ.push({ f: o, at: time + 15 }); hole.pts += 2; scored++; checkLevel(); updateHud(); return; }
+  if (o.critter) { critterQ.push({ f: o, at: time + 15 }); hole.pts += 1; scored++; hole.gulp = 0.5; checkLevel(); updateHud(); return; }
   if (o.moving) { o.state = 'idle'; o.along = o.speed > 0 ? -90 : W.SIZE + 90; placeVehicle(o); o.lane = city.lanes[Math.floor(Math.random() * city.lanes.length)]; o.speed = Math.abs(o.speed) * o.lane.sgn; placeVehicle(o); }
   else { const i = objs.indexOf(o); if (i >= 0) objs.splice(i, 1); o.x = o.sx; o.y = o.sy; if (mode === 'free') respawnQ.push({ o, at: time + 20 + Math.random() * 15 }); }
   if (o.landmark && mode === 'run') { addStars(5); Sfx.win(); ending = 3.2; return; }
   if (hole.level < 8) {
-    hole.pts += o.size * o.size + 1; scored++; // +1 so small early snacks always visibly fill the bar
+    hole.pts += o.size * o.size + 1; scored++; hole.gulp = Math.min(1, 0.4 + o.size * 0.08); // +1 so small early snacks always visibly fill the bar
     checkLevel();
   }
   updateHud();
@@ -256,7 +258,7 @@ function render() {
   drawGroundCached(ctx, s, ox, oy, view);
   const vis = o => o.x > view.x0 - 150 && o.x < view.x1 + 150 && o.y > view.y0 && o.y < view.y1;
   if (playing || ending) {
-    const pr = hole.R * (1 + Math.sin(hole.pulse * 10) * hole.pulse * 0.08);
+    const pr = hole.R * (1 + Math.sin(hole.pulse * 10) * hole.pulse * 0.08 + Math.sin((hole.gulp || 0) * 9) * (hole.gulp || 0) * 0.07);
     G(); drawCrackSprite(ctx, hole.x, hole.y, pr, ((SKINS.find(k => k.id === save.skin) || SKINS[0]).rim[0]).slice(0, 7), time);
     drawHole(ctx, hole.x, hole.y, pr, save.skin, time);
     drawSwirl(ctx, hole.x, hole.y, pr, time);

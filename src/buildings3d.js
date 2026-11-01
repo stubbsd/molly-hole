@@ -90,6 +90,9 @@ function drawBuilding3D(ctx, o, sink = 0, ox = 0, oy = 0) {
     const m = D.w * 0.18;
     box(ctx, x0 + m, y0 + m, x0 + m + D.w * 0.3, y0 + m + D.d * 0.25, zt, zt + 14, '#a4a9b0');
     box(ctx, x1 - m - D.w * 0.18, y1 - m - D.d * 0.2, x1 - m, y1 - m, zt, zt + 9, '#b9bec4');
+    // rooftop clutter: AC units + a water tank on taller blocks
+    for (let i = 0; i < 3; i++) { const ax = x0 + m + i * D.w * 0.13; box(ctx, ax, y1 - m - 14, ax + D.w * 0.09, y1 - m - 4, zt, zt + 6, '#c9cdd2'); }
+    if (H > 250) { const cx = x1 - m - D.w * 0.12, cy = y0 + m + 10; box(ctx, cx - 9, cy - 9, cx + 9, cy + 9, zt + 8, zt + 26, '#8a6d55'); box(ctx, cx - 7, cy - 7, cx - 5, cy + 7, zt, zt + 8, '#555'); box(ctx, cx + 5, cy - 7, cx + 7, cy + 7, zt, zt + 8, '#555'); }
   }
   ctx.restore();
 }
