@@ -3,7 +3,7 @@
 // After the warp, walls, roofs and floor share one perspective and one set of vanishing points.
 const TEX = {};
 function loadTextures() {
-  return Promise.all(['glass', 'stone', 'dark', 'brick', 'f-cottage', 'f-pub', 'f-church', 'f-terrace', 'f-warehouse'].map(n => new Promise(res => { const i = new Image(); i.onload = () => { TEX[n] = i; res(); }; i.onerror = res; i.src = 'assets/tex/' + n + '.jpg'; })));
+  return Promise.all(['glass', 'stone', 'dark', 'brick', 'f-cottage', 'f-pub', 'f-church', 'f-terrace', 'f-warehouse', 'f-shopfront', 'f-deco', 'f-modern'].map(n => new Promise(res => { const i = new Image(); i.onload = () => { TEX[n] = i; res(); }; i.onerror = res; i.src = 'assets/tex/' + n + '.jpg'; })));
 }
 let PJ = null; // set every frame by render()
 function setProjection(p) { // p: {s, camx, camy, ocx, ocy, k}
@@ -20,21 +20,22 @@ function P3(x, y, z) {
 const is3D = o => !o.flat && !o.spr_flat && (o.type === 'office' || o.type === 'tower' || o.type === 'shop');
 function bStyle(o) {
   if (THEME === 'village') { const D = bDims(o); return o.type === 'tower' ? { tex: 'f-church', tw: D.w, th: D.h, roof: '#5e6670' } : o.type === 'office' ? { tex: 'f-pub', tw: D.w, th: D.h, roof: '#55606b' } : { tex: 'f-cottage', tw: D.w, th: D.h, roof: o.hue < 0.5 ? '#b08a4e' : '#9a5a3c' }; }
-  if (THEME === 'district' && o.type !== 'tower') { const D = bDims(o); return { tex: o.type === 'office' ? 'f-warehouse' : 'f-terrace', tw: D.w, th: D.h, roof: o.hue < 0.5 ? '#4a4f57' : '#5a4638' }; }
+  if (THEME === 'district' && o.type !== 'tower') { const D = bDims(o); if (o.hue > 0.72) return { tex: o.type === 'office' ? 'f-deco' : 'f-shopfront', tw: D.w, th: D.h, roof: '#4f5660' }; return { tex: o.type === 'office' ? (o.hue < 0.35 ? 'brick' : 'f-warehouse') : 'f-terrace', ...(o.type === 'office' && o.hue < 0.35 ? { tw: 70, th: 64 } : {}), tw: D.w, th: D.h, roof: o.hue < 0.5 ? '#4a4f57' : '#5a4638', ...(o.type === 'office' && o.hue < 0.35 ? { tw: 70, th: 64 } : {}) }; }
   if (THEME === 'district') return o.type === 'tower' ? { tex: 'stone', tw: 56, th: 52, roof: '#6a5f57' } : { tex: 'brick', tw: o.type === 'shop' ? 64 : 70, th: o.type === 'shop' ? 60 : 64, roof: o.hue < 0.5 ? '#4a4f57' : '#5a4638' };
   if (THEME === 'village') return o.type === 'tower' ? { tex: 'stone', tw: 56, th: 52, roof: '#5e6670' } : o.type === 'office' ? { tex: 'stone', tw: 56, th: 52, roof: '#55606b' } : { tex: o.hue < 0.55 ? 'brick' : 'stone', tw: 70, th: 64, roof: o.hue < 0.3 ? '#9c4a35' : o.hue < 0.7 ? '#8a4632' : '#58626d' };
-  if (o.type === 'shop') return { tex: 'brick', tw: o.w, th: o.bh, roof: '#6d5a4c' };
+  if (o.type === 'shop') { const D = bDims(o), k = Math.floor(o.hue * 4); return k === 0 ? { tex: 'f-shopfront', tw: D.w, th: D.h, roof: '#6d5a4c' } : k === 1 ? { tex: 'f-terrace', tw: D.w, th: D.h, roof: '#4f5660' } : k === 2 ? { tex: 'stone', tw: 56, th: 52, roof: '#7a7068' } : { tex: 'brick', tw: o.w, th: o.bh, roof: '#6d5a4c' }; }
   if (o.type === 'tower') return { tex: 'glass', tw: 60, th: 60, roof: '#9aa3ad' };
-  const t = o.spr ? o.spr.slice(3) : (o.hue < 0.4 ? 'glass' : o.hue < 0.7 ? 'stone' : 'dark');
+  if (!o.spr && o.hue >= 0.25 && o.hue < 0.5) { const D = bDims(o); return { tex: o.hue < 0.37 ? 'f-modern' : 'f-deco', tw: D.w, th: Math.min(D.h, D.w * 1.6), roof: '#9a9488' }; }
+  const t = o.spr ? o.spr.slice(3) : (o.hue < 0.25 ? 'glass' : o.hue < 0.7 ? 'stone' : 'dark');
   return { tex: t, tw: t === 'glass' ? 60 : 56, th: t === 'glass' ? 58 : 52, roof: t === 'dark' ? '#5b5f66' : '#8d9197' };
 }
 function bDims(o) {
   if (THEME === 'district' && o.type === 'office') return { w: o.w * 0.94, d: o.d * 0.8, h: Math.min(170, 110 + o.hue * 80) };
   if (THEME === 'village') { if (o.type === 'tower') return { w: 120, d: 120, h: 210 }; if (o.type === 'office') return { w: o.w * 0.8, d: o.d * 0.5, h: 110 }; return { w: o.w * 0.78, d: o.d * 0.6, h: 74 }; }
-  if (o.type === 'shop') { o.bh = o.bh || Math.max(95, o.ht + 40); return { w: o.w * 0.92, d: o.d * 0.92, h: o.bh }; }
+  if (o.type === 'shop') { o.bh = o.bh || Math.max(80, o.ht + 30 + ((o.hue * 11.7) % 1) * 70); return { w: o.w * (0.8 + ((o.hue * 5.3) % 1) * 0.16), d: o.d * (0.78 + ((o.hue * 9.1) % 1) * 0.18), h: o.bh }; }
   if (o.type === 'tower') return { w: 160, d: 160, h: 470 };
-  const tall = o.spr ? o.ht : o.ht * 1.25;
-  return { w: o.w * 0.94, d: o.d * 0.94, h: tall };
+  const tall = o.spr ? o.ht : o.ht * 1.25, fw = 0.78 + ((o.hue * 7.3) % 1) * 0.2, fd = 0.7 + ((o.hue * 13.1) % 1) * 0.26;
+  return { w: o.w * fw, d: o.d * fd, h: tall };
 }
 const pats = new Map();
 function pat(ctx, name) { let p = pats.get(name); if (!p && TEX[name]) { p = ctx.createPattern(TEX[name], 'repeat'); pats.set(name, p); } return p; }
@@ -74,6 +75,7 @@ function shadeCol(hex, f) { const n = parseInt(hex.slice(1), 16); return `rgb(${
 
 // sink lowers the whole building (used while it is being swallowed)
 function drawBuilding3D(ctx, o, sink = 0, ox = 0, oy = 0) {
+  if (o.tier === undefined) o.tier = THEME === 'city' && o.type === 'office' && !o.spr && ((o.hue * 17.3) % 1) > 0.45 ? { type: 'office', tierOf: 1, x: o.x, y: o.y, w: o.w * 0.62, d: o.d * 0.6, ht: o.ht * (0.35 + ((o.hue * 3.7) % 1) * 0.4), hue: (o.hue + 0.5) % 1 } : null;
   const st = bStyle(o), D = bDims(o), H = D.h, x0 = o.x + ox - D.w / 2, x1 = x0 + D.w, y0 = o.y + oy - D.d / 2, y1 = y0 + D.d;
   const zb = -sink, zt = H - sink;
   ctx.save();
@@ -100,6 +102,7 @@ function drawBuilding3D(ctx, o, sink = 0, ox = 0, oy = 0) {
   poly(ctx, r, shadeCol(st.roof, 0.85));
   const iw = Math.min(D.w, D.d) * 0.07;
   poly(ctx, [P3(x0 + iw, y0 + iw, zt), P3(x1 - iw, y0 + iw, zt), P3(x1 - iw, y1 - iw, zt), P3(x0 + iw, y1 - iw, zt)], st.roof);
+  if (o.tier) { const T = o.tier; T.x = o.x; T.y = o.y; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); drawTier(ctx, T, zt, ox, oy); ctx.restore(); ctx.restore(); return; }
   if (o.type === 'tower') {
     const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, ap = P3(cx, cy, zt + 150), q = [P3(x0 + 25, y0 + 25, zt), P3(x1 - 25, y0 + 25, zt), P3(x1 - 25, y1 - 25, zt), P3(x0 + 25, y1 - 25, zt)];
     poly(ctx, [q[0], q[1], ap], '#7d8894'); poly(ctx, [q[3], q[0], ap], '#a9b4c0'); poly(ctx, [q[1], q[2], ap], '#5c6773'); poly(ctx, [q[2], q[3], ap], '#8c97a3');
@@ -124,4 +127,15 @@ function buildingShadowPath(ctx, o) {
   const D = bDims(o), sx = D.h * 0.75, sy = D.h * 0.52, x0 = o.x - D.w / 2, x1 = o.x + D.w / 2, y0 = o.y - D.d / 2, y1 = o.y + D.d / 2;
   // sun from the top-left: hull is a hexagon
   ctx.moveTo(x0, y0); ctx.lineTo(x1, y0); ctx.lineTo(x1 + sx, y0 + sy); ctx.lineTo(x1 + sx, y1 + sy); ctx.lineTo(x0 + sx, y1 + sy); ctx.lineTo(x0, y1); ctx.closePath();
+}
+
+// stepped upper storey on some city towers: same box drawer, lifted onto the roof
+function drawTier(ctx, T, z0, ox, oy) {
+  const st = bStyle(T), D = bDims(T), x0 = T.x + ox - D.w / 2, x1 = x0 + D.w, y0 = T.y + oy - D.d / 2, y1 = y0 + D.d, zt = z0 + D.h;
+  if (PJ.camx < x0) wall(ctx, x0, y0, x0, y1, z0, zt, st, 0.08, zt);
+  if (PJ.camx > x1) wall(ctx, x1, y1, x1, y0, z0, zt, st, 0.5, zt);
+  wall(ctx, x0, y1, x1, y1, z0, zt, st, 0.24, zt);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  poly(ctx, [P3(x0, y0, zt), P3(x1, y0, zt), P3(x1, y1, zt), P3(x0, y1, zt)], shadeCol(st.roof, 0.85));
+  box(ctx, (x0 + x1) / 2 - 8, (y0 + y1) / 2 - 8, (x0 + x1) / 2 + 8, (y0 + y1) / 2 + 8, zt, zt + 30, '#9aa1a8');
 }

@@ -20,7 +20,7 @@ const TYPES = {
 };
 const HOLE_R = [0, 18, 24, 32, 42, 62, 88, 122, 168];
 // City Run tuned for hand play in a few minutes (points per item = size^2)
-const LEVEL_NEED = [0, 8, 50, 180, 420, 750, 1150, 1600, 1e9]; // ~3-4 min City Run by hand
+const LEVEL_NEED = [0, 6, 28, 90, 200, 340, 500, 700, 1e9]; // snappy: ~1-1.5 min City Run by hand
 
 // ---------- worlds ----------
 // Each world reuses the same size classes (type) but swaps the art (spr) and the block mix.
@@ -79,7 +79,7 @@ function buildCity(seed = 7) {
       const q = s / 4, HR = ['hr-glass', 'hr-stone', 'hr-dark'];
       [[cx - q, cy - q], [cx + q, cy - q], [cx - q, cy + q], [cx + q, cy + q]].forEach(([x, y]) => objs.push(makeObj('office', x, y, { w: 150, d: 150, hue: R(), spr: HR[Math.floor(R() * 3)], ht: 300 + R() * 140 })));
     } else if (kind === 'office') {
-      objs.push(makeObj('office', cx, cy, { w: 180, d: 180, hue: R(), ht: 180 + R() * 120 }));
+      { const hv = R(); objs.push(makeObj('office', cx, cy, { w: 150 + R() * 50, d: 140 + R() * 60, hue: hv, ht: 130 + R() * 230 })); }
       [[a + 20, b + 20], [a + s - 20, b + 20], [a + 20, b + s - 20], [a + s - 20, b + s - 20]].forEach(([x, y]) => objs.push(makeObj('tree', x, y, { hue: R() })));
     } else if (kind === 'shops') {
       const q = s / 4;
@@ -483,28 +483,39 @@ function tinted(img, hue) {
 // Ground is static, so it is rendered once into 512px tiles at three zoom levels and reused every frame
 const GT = new Map(); let gtFrame = 0;
 function drawGroundCached(ctx, s, ox, oy, view) {
-  const q = s > 1.3 ? 2 : s > 0.65 ? 1 : 0.5, T = 512 / q, pad = 2; gtFrame++;
+  const q = s > 1.5 ? 2 : s > 0.55 ? 1 : 0.5, T = 512 / q, pad = 2; gtFrame++; gtBuilt = 0;
   const vx0 = view.x0 + 150, vx1 = view.x1 - 150, vy0 = view.y0 + 150, vy1 = Math.min(view.y1 - 1300, W.SIZE + 600);
   ctx.setTransform(s, 0, 0, s * TILT, ox, oy); ctx.imageSmoothingEnabled = true;
   for (let ty = Math.floor(vy0 / T); ty * T < vy1; ty++) for (let tx = Math.floor(vx0 / T); tx * T < vx1; tx++) {
     const key = q + ':' + tx + ':' + ty; let t = GT.get(key);
-    if (!t) {
-      const c = document.createElement('canvas'); c.width = c.height = 512 + pad * 2; const x = c.getContext('2d');
+    if (!t || t.bad) {
+      if (gtBuilt >= 3) { const alt = GT.get((q === 1 ? 2 : 1) + ':' + tx + ':' + ty) || GT.get('0.5:' + Math.floor(tx * T / 1024) + ':' + Math.floor(ty * T / 1024)); if (alt && !alt.bad) { ctx.fillStyle = gtBase(); ctx.fillRect(tx * T, ty * T, T, T); } else { ctx.fillStyle = gtBase(); ctx.fillRect(tx * T, ty * T, T, T); } continue; } // spread tile work over frames
+      gtBuilt++;
+      // reuse the least recently used tile canvas instead of making new ones: iOS Safari has a hard total
+      // canvas-memory cap and frees dropped canvases late, so churn eventually left new tiles blank (grey ground)
+      let c;
+      if (GT.size >= GT_MAX) { let old = null, ok = null; for (const [k2, v] of GT) if (v.u !== gtFrame && (!old || v.u < old.u)) { old = v; ok = k2; } if (old) { GT.delete(ok); c = old.c; } }
+      if (!c) { window.__gtCreated = (window.__gtCreated || 0) + 1; c = document.createElement('canvas'); c.width = c.height = 512 + pad * 2; }
+      const x = c.getContext('2d');
+      if (!x) { t = { c, bad: 1, u: gtFrame }; GT.set(key, t); continue; }
+      x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height);
       x.setTransform(q, 0, 0, q, -tx * T * q + pad, -ty * T * q + pad);
       drawGround(x, CITY_FOR_TILES, { x0: tx * T - 260, x1: (tx + 1) * T + 260, y0: ty * T - 260, y1: (ty + 1) * T + 260 });
       t = { c }; GT.set(key, t);
-      if (GT.size > 48) { let old = null, ok = null; for (const [k2, v] of GT) if (!old || v.u < old.u) { old = v; ok = k2; } GT.delete(ok); }
     }
     t.u = gtFrame;
     ctx.drawImage(t.c, pad, pad, 512, 512, tx * T, ty * T, T + 0.6 / s, T + 0.6 / s);
   }
 }
-let CITY_FOR_TILES = null;
-function setGroundCity(c) { CITY_FOR_TILES = c; GT.clear(); }
+let CITY_FOR_TILES = null, gtBuilt = 0;
+const GT_MAX = 40;
+const gtBase = () => ({ city: '#555b63', district: '#5a5550', village: '#6f9a48', desert: '#e2c48e', moon: '#84858c' })[THEME] || '#555b63';
+function setGroundCity(c) { CITY_FOR_TILES = c; for (const v of GT.values()) v.u = -1, v.stale = 1; GT_POOL_RESET(); }
+function GT_POOL_RESET() { const keep = [...GT.values()]; GT.clear(); keep.forEach((v, i) => GT.set('old' + i, v)); } // keep the canvases for reuse, drop their contents
 // crack ring around the hole: drawn once into a sprite, then rotated slowly each frame
 const CRK = new Map();
 function drawCrackSprite(ctx, x, y, R, col, t) {
   let c = CRK.get(col);
-  if (!c) { c = document.createElement('canvas'); c.width = c.height = 400; const k = c.getContext('2d'); drawCracks(k, 200, 200, 100, col); CRK.set(col, c); }
+  if (!c) { window.__gtCreated = (window.__gtCreated || 0) + 1; c = document.createElement('canvas'); c.width = c.height = 400; const k = c.getContext('2d'); drawCracks(k, 200, 200, 100, col); CRK.set(col, c); }
   ctx.save(); ctx.translate(x, y); ctx.rotate(t * 0.6); const S = R * 4 * (1 + Math.sin(t * 3) * 0.04); ctx.drawImage(c, -S / 2, -S / 2, S, S); ctx.restore();
 }

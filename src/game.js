@@ -19,21 +19,22 @@ let city, objs, vehicles, peds, birds, falling, parts, respawnQ, critterQ = [];
 let mode = null, playing = false, paused = false, ending = 0, runStars = 0, runCoins = 0, time = 0;
 let orderIdx = 0, ringT = 0, ringDone = false, curStop = null;
 const ORDER = ['bin', 'bench', 'tree', 'car', 'bus'];
-const RING_T = 180; // seconds for the soft timer ring (never shown as numbers)
+const RING_T = 100; // seconds for the soft timer ring (never shown as numbers)
 const hole = { x: 0, y: 0, tx: 0, ty: 0, R: 14, level: 1, pts: 0, pulse: 0 };
 const cam = { x: 0, y: 0, s: 1 };
 
-function newWorld() {
-  setTheme(curWorld);
-  city = buildCity(7 + Math.floor(Math.random() * 1000));
+let worldSeed = 7;
+function newWorld(seed) {
+  setTheme(curWorld); worldSeed = seed || 7 + Math.floor(Math.random() * 1000);
+  city = buildCity(worldSeed); city.objs.forEach((o, i) => { o.uid = i; }); city.nObjs = city.objs.length;
   objs = city.objs; peds = city.peds; birds = city.birds; setGroundCity(city); critterQ = [];
   vehicles = []; for (let i = 0; i < 34; i++) vehicles.push(spawnVehicle(city, true));
   falling = []; parts = []; respawnQ = [];
 }
 let lastMode = null, curWorld = 'city', lastWorld = 'city';
-function startGame(m, world) {
+function startGame(m, world, seed) {
   curWorld = world || 'city'; lastMode = m; lastWorld = curWorld;
-  Sfx.init(); Sfx.startMusic(); newWorld();
+  Sfx.init(); Sfx.startMusic(); newWorld(seed);
   mode = m; playing = true; paused = false; ending = 0; runStars = 0; runCoins = 0; orderIdx = 0; ringT = 0; ringDone = false;
   // start on a road near a corner of the central area
   const p = W.PITCH * 2 + W.ROAD / 2, lv = m === 'order' ? 5 : m === 'bonus' ? 2 : 1, sx = city.start ? city.start.x : p, sy = city.start ? city.start.y : p;
@@ -46,14 +47,32 @@ function startGame(m, world) {
   $('coinPill').classList.toggle('hidden', !(m === 'bonus' || m === 'timed'));
   show('hud'); hide('home'); hide('ward'); hide('pause'); hide('end'); hide('map'); hide('timeup'); updateHud();
 }
-function goHome() { fingerDown = false; activeId = null; hideStick();
+function goHome() { clearSnap(); fingerDown = false; activeId = null; hideStick();
   playing = false; paused = false; mode = null; hide('hud'); hide('pause'); hide('end'); hide('ward'); hide('map'); hide('timeup'); show('home'); refreshStars();
 }
 // leaving a level always goes back to the start map; bonus levels count as done just for visiting
 function goMap() {
+  clearSnap();
   if (curStop && (mode === 'bonus' || mode === 'free')) markDone(curStop, 1);
   fingerDown = false; activeId = null; hideStick(); playing = false; paused = false; mode = null; ending = 0;
   hide('hud'); hide('pause'); hide('end'); hide('ward'); hide('home'); hide('timeup'); show('map'); buildMap();
+}
+// mid-level snapshot so an iOS interrupt (or Safari dropping the tab) never loses the level
+const SNAP_KEY = 'mollyHole.snap';
+function saveSnap() {
+  if (!playing || ending || mode === 'bonus') return;
+  const gone = []; const have = new Set(); for (const o of objs) if (o.uid !== undefined) have.add(o.uid); for (let i = 0; i < city.nObjs; i++) if (!have.has(i)) gone.push(i);
+  try { localStorage.setItem(SNAP_KEY, JSON.stringify({ at: Date.now(), mode, world: curWorld, seed: worldSeed, stop: curStop, hole: { x: hole.x, y: hole.y, level: hole.level, pts: hole.pts }, runStars, runCoins, orderIdx, ringT, swallowed, scored, gone })); } catch (_) {}
+}
+function clearSnap() { try { localStorage.removeItem(SNAP_KEY); } catch (_) {} }
+function resumeSnap() {
+  let sn = null; try { sn = JSON.parse(localStorage.getItem(SNAP_KEY) || 'null'); } catch (_) {}
+  if (!sn || Date.now() - sn.at > 30 * 60e3) return false;
+  curStop = sn.stop; startGame(sn.mode, sn.world, sn.seed);
+  const g = new Set(sn.gone); objs = objs.filter(o => o.uid === undefined || !g.has(o.uid)); city.objs = objs;
+  Object.assign(hole, { x: sn.hole.x, y: sn.hole.y, tx: sn.hole.x, ty: sn.hole.y, level: sn.hole.level, pts: sn.hole.pts, R: HOLE_R[sn.hole.level] });
+  cam.x = hole.x; cam.y = hole.y; runStars = sn.runStars; runCoins = sn.runCoins; orderIdx = sn.orderIdx; ringT = sn.ringT; swallowed = sn.swallowed || 0; scored = sn.scored || 0;
+  if (mode === 'order') buildStrip(); updateHud(); doPause(); return true;
 }
 function markDone(id, st) { save.done[id] = Math.max(save.done[id] || 0, st); persist(); }
 
@@ -173,7 +192,11 @@ const endPtr = e => { if (e.pointerId === activeId) { activeId = null; fingerDow
 cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr); cv.addEventListener('lostpointercapture', endPtr);
 ['gesturestart', 'gesturechange', 'contextmenu', 'dblclick'].forEach(ev => document.addEventListener(ev, e => e.preventDefault()));
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
-document.addEventListener('visibilitychange', () => { if (document.hidden && playing && !ending) doPause(); });
+// iOS popups, app switching and Control Centre: freeze the level and keep it, never restart it
+const interrupt = () => { fingerDown = false; activeId = null; hideStick(); if (playing && !ending) { if (!paused) doPause(); saveSnap(); } };
+document.addEventListener('visibilitychange', () => { if (document.hidden) interrupt(); else last = performance.now(); });
+addEventListener('pagehide', interrupt); addEventListener('blur', interrupt);
+addEventListener('pageshow', () => { last = performance.now(); });
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 
 // debounced buttons so mashing can't double-fire
@@ -257,8 +280,7 @@ function update(dt) {
   hole.R += (targetR - hole.R) * Math.min(1, dt * 4); hole.pulse = Math.max(0, hole.pulse - dt * 2); hole.gulp = Math.max(0, (hole.gulp || 0) - dt * 3);
 
   // swallow / teeter
-  const all = objs.concat(vehicles);
-  for (const o of all) {
+  for (let ai = 0, an = objs.length + vehicles.length; ai < an; ai++) { const o = ai < objs.length ? objs[ai] : vehicles[ai - objs.length]; if (!o) continue;
     if (o.state !== 'idle') continue;
     const dd = Math.hypot(o.x - hole.x, o.y - hole.y);
     if (dd > hole.R + o.r + 10) { o.wob = Math.max(0, o.wob - dt); continue; }
@@ -290,12 +312,18 @@ function update(dt) {
     ringT += dt; $('ring').style.setProperty('--p', Math.min(100, ringT / RING_T * 100).toFixed(1) + '%');
     if (ringT >= RING_T) { ringDone = true; paused = true; fingerDown = false; activeId = null; hideStick(); show('timeup'); } // nothing fails: Continue or Exit
   }
-  if (ending) { ending -= dt; if (Math.random() < dt * 6) firework(); if (ending <= 0) { ending = 0; playing = false; $('endStars').textContent = '+' + runStars; $('endCoins').textContent = '+' + runCoins; $('endCoinsPill').classList.toggle('hidden', !runCoins); show('end'); } }
+  if (!ending && (snapT += dt) > 4) { snapT = 0; saveSnap(); }
+  if (ending) { if (ending > 3) clearSnap(); ending -= dt; if (Math.random() < dt * 6) firework(); if (ending <= 0) { ending = 0; playing = false; $('endStars').textContent = '+' + runStars; $('endCoins').textContent = '+' + runCoins; $('endCoinsPill').classList.toggle('hidden', !runCoins); show('end'); } }
 
   // camera follows hole, zooms out as it grows
-  const want = Math.min(Wd, Ht) / Math.max(380, hole.R * 7);
-  cam.s += (want - cam.s) * Math.min(1, dt * 2);
+  const mn = Math.min(Wd, Ht), base = mn / 380, want = Math.min(base, mn * 0.25 / (2 * hole.R)); // hole diameter <= 1/4 of the short side
+  cam.s += (want - cam.s) * Math.min(1, dt * 1.5);
   cam.x += (hole.x - cam.x) * Math.min(1, dt * 8); cam.y += (hole.y - cam.y) * Math.min(1, dt * 8);
+  { // keep the view inside the map so the void beyond the world edge never shows when zoomed out
+    const hw = Wd * 0.6 / cam.s, hhT = Ht * 0.75 / (cam.s * TILT), hhB = Ht * 0.55 / (cam.s * TILT), S = W.SIZE;
+    cam.x = 2 * hw >= S ? S / 2 : Math.max(hw, Math.min(S - hw, cam.x));
+    cam.y = hhT + hhB >= S ? S / 2 : Math.max(hhT, Math.min(S - hhB, cam.y));
+  }
 }
 
 // Demo/test autoplay (only via ?autoplay=1 in the URL; never shown to players)
@@ -310,10 +338,10 @@ function autoSteer() {
   }
   if (best) { hole.tx = clamp(best.x, 30, W.SIZE - 30); hole.ty = clamp(best.y, 30, W.SIZE - 30); }
 }
-window.__molly = { get orderIdx() { return orderIdx; }, get ring() { return ringT; }, goMap: () => goMap(), get coins() { return save.coins; }, hole, get mode() { return mode; }, get playing() { return playing; }, start: (m, w) => startGame(m, w), get time() { return time; }, get camS() { return cam.s; }, get swallowed() { return swallowed; }, get scored() { return scored; }, get pts() { return hole.pts; }, get level() { return hole.level; }, targets: () => objs.concat(vehicles).filter(o => o.state === 'idle').map(o => ({ x: o.x, y: o.y, size: o.size, type: o.type, lm: !!o.landmark })), toScreen: (x, y) => { const p = P3(x, y, 0), W2 = cv.width, H2 = cv.height, k = PJ.k, zr = p[1] - PJ.ocy, f = 1 / (1 - zr * k); return [(W2 / 2 + (p[0] - PJ.ocx) * f) / dpr, (H2 / 2 + zr * f) / dpr]; } };
+window.__molly = { get orderIdx() { return orderIdx; }, get ring() { return ringT; }, goMap: () => goMap(), get coins() { return save.coins; }, hole, get mode() { return mode; }, get playing() { return playing; }, get paused() { return paused; }, start: (m, w) => startGame(m, w), get time() { return time; }, get camS() { return cam.s; }, get swallowed() { return swallowed; }, get scored() { return scored; }, get pts() { return hole.pts; }, get level() { return hole.level; }, targets: () => objs.concat(vehicles).filter(o => o.state === 'idle').map(o => ({ x: o.x, y: o.y, size: o.size, type: o.type, lm: !!o.landmark })), toScreen: (x, y) => { const p = P3(x, y, 0), W2 = cv.width, H2 = cv.height, k = PJ.k, zr = p[1] - PJ.ocy, f = 1 / (1 - zr * k); return [(W2 / 2 + (p[0] - PJ.ocx) * f) / dpr, (H2 / 2 + zr * f) / dpr]; } };
 function startFall(o) {
   o.state = 'fall'; o.ft = 0; o.dur = 0.6 + o.size * 0.1; o.sx = o.x; o.sy = o.y; o.spin = (Math.random() - 0.5) * 2.4; falling.push(o);
-  Sfx.swallow(o.size, save.skin);
+  if (o.critter) Sfx.scream(!o.ped); else Sfx.swallow(o.size, save.skin);
   if (parts.length < 140) { const sk = SKINS.find(s => s.id === save.skin); for (let i = 0; i < 6 + o.size; i++) { const a = i / (6 + o.size) * 6.283; parts.push({ x: o.x, y: o.y, vx: Math.cos(a) * (120 + o.size * 25), vy: Math.sin(a) * (120 + o.size * 25), life: 0.5, col: i % 2 ? sk.rim[0] : '#ffffff', sz: 2 + o.size * 0.6 }); } }
   if (false) for (let i = 0; i < 0; i++) parts.push({ x: o.x, y: o.y, vx: (Math.random() - 0.5) * 160, vy: (Math.random() - 0.5) * 160, life: 0.6, col: SKINS.find(s => s.id === save.skin).rim[1], sz: 2 + o.size * 0.5 });
 }
@@ -389,15 +417,14 @@ function updateParts(dt) { for (let i = parts.length - 1; i >= 0; i--) { const p
 // The scene is drawn flat-tilted into an oversized offscreen canvas, then warped row by row
 // onto the screen with a perspective divide, so the floor recedes like a real 3D plane and
 // every prop/shadow on it shares exactly the same projection.
-const oc = document.createElement('canvas'), octx = oc.getContext('2d');
+const oc = document.createElement('canvas'), octx = oc.getContext('2d'), RLIST = [], depthCmp = (a, b) => (a.y + (a._k ? 0 : (a.d || 0) / 2)) - (b.y + (b._k ? 0 : (b.d || 0) / 2));
 const EXW = 1.12, EXH = 1.07, PK = 0.15, OCY = 0.53; // just big enough for the warp source (was 1.8×1.6 = 2.6× the pixels)
 function render() {
-  window.__mollyFalling = falling.filter(o => o.size >= 2 && o.ft > 0.2 && o.ft < 0.55).length;
   const mctx = window.ctx || cv.getContext('2d');
   const ow = Math.ceil(cv.width * EXW), oh = Math.ceil(cv.height * EXH);
   if (oc.width !== ow || oc.height !== oh) { oc.width = ow; oc.height = oh; }
   const ctx = octx;
-  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#3a4048'; ctx.fillRect(0, 0, ow, oh);
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = typeof gtBase === 'function' ? gtBase() : '#3a4048'; ctx.fillRect(0, 0, ow, oh);
   const s = cam.s * dpr, ox = ow / 2 - cam.x * s, oy = oh * OCY - cam.y * TILT * s;
   const G = () => ctx.setTransform(s, 0, 0, s * TILT, ox, oy);   // ground space
   const U = () => ctx.setTransform(s, 0, 0, s, ox, oy);          // upright space (y pre-multiplied by TILT)
@@ -452,18 +479,18 @@ function render() {
   // vehicles lie flat on the road (ground space)
   // upright things, depth sorted by their front edge
   U();
-  const list = [];
+  const list = RLIST; list.length = 0; let li = 0;
   for (const o of objs) if (o.state === 'idle' && vis(o)) list.push(o);
-  for (const p of peds) if (vis(p)) list.push({ ped: p, y: p.y });
-  for (const v of vehicles) if (v.state === 'idle' && vis(v)) list.push({ veh: v, y: v.y });
-  for (const b of birds) if (vis(b)) list.push({ bird: b, y: b.y });
-  list.sort((a, b) => (a.y + (a.d || 0) / 2) - (b.y + (b.d || 0) / 2));
+  for (const p of peds) if (vis(p)) { p._k = 1; list.push(p); }
+  for (const v of vehicles) if (v.state === 'idle' && vis(v)) { v._k = 2; list.push(v); }
+  for (const b of birds) if (vis(b)) { b._k = 3; list.push(b); }
+  list.sort(depthCmp);
   const hy = hole.y * TILT;
   for (const it of list) {
     ctx.save();
-    if (it.ped) { ctx.translate(it.ped.x, it.ped.y * TILT); drawPed(ctx, it.ped, time); }
-    else if (it.veh) { ctx.translate(it.veh.x, it.veh.y * TILT); if (it.veh.wob > 0) ctx.rotate(Math.sin(time * 30) * 0.06 * it.veh.wob); drawVehicleUp(ctx, it.veh); }
-    else if (it.bird) { ctx.translate(it.bird.x, it.bird.y * TILT); drawBird(ctx, it.bird, time); }
+    if (it._k === 1) { ctx.translate(it.x, it.y * TILT); drawPed(ctx, it, time); }
+    else if (it._k === 2) { ctx.translate(it.x, it.y * TILT); if (it.wob > 0) ctx.rotate(Math.sin(time * 30) * 0.06 * it.wob); drawVehicleUp(ctx, it); }
+    else if (it._k === 3) { ctx.translate(it.x, it.y * TILT); drawBird(ctx, it, time); }
     else if (it.type === 'coin' || it.type === 'gift') { ctx.translate(it.x, it.y * TILT); drawPickup(ctx, it, time); }
     else if (is3D(it)) {
       if (playing || ending) { const bb = bBounds(it), hp = P3(hole.x, hole.y, 0); if (hp[0] > bb.x0 - 20 && hp[0] < bb.x1 + 20 && hp[1] > bb.y0 && hp[1] < bb.y1 && hole.y < it.y + it.d / 2) ctx.globalAlpha = 0.35; }
@@ -521,6 +548,7 @@ function frame(now) {
   if (perfT > 1500) { const fps = perfN * 1000 / perfT; perfN = 0; perfT = 0; window.__mollyFps = fps; window.__mollyCost = costT / Math.max(1, costN); costT = costN = 0;
     if (fps < 50 && resScale > 0.6) { resScale = Math.max(0.6, resScale - 0.2); resize(); } }
 }
-newWorld(); refreshStars(); hide('home'); show('map'); buildMap(); // always open on the levels map
-Promise.all([loadSprites(), loadTextures()]).then(() => requestAnimationFrame(frame));
+newWorld(); refreshStars(); hide('home'); show('map'); buildMap(); // always open on the levels map (or straight back into an interrupted level)
+let snapT = 0;
+Promise.all([loadSprites(), loadTextures()]).then(() => { try { resumeSnap(); } catch (e) { clearSnap(); } requestAnimationFrame(frame); });
 })();

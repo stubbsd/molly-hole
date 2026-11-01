@@ -1,5 +1,5 @@
 // Offline cache for Molly Hole. No network calls beyond its own files.
-const CACHE = 'molly-hole-p3p1';
+const CACHE = 'molly-hole-dev1';
 const FILES = [
   "./",
   "./assets/icons/icon-1024.png",
@@ -8,6 +8,7 @@ const FILES = [
   "./assets/map/stop-gold.webp",
   "./assets/map/stop-locked.webp",
   "./assets/map/stop-gift.webp",
+  "./assets/tex/f-shopfront.jpg", "./assets/tex/f-deco.jpg", "./assets/tex/f-modern.jpg",
   "./assets/sprites/k-tiger.png",
   "./assets/sprites/k-stone.png",
   "./assets/sprites/k-gold.png",

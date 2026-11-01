@@ -22,8 +22,23 @@ const Sfx = (() => {
     const s = ctx.createBufferSource(); s.buffer = nbuf(); const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq;
     const g = ctx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); s.connect(f); f.connect(g); g.connect(master); s.start(t); s.stop(t + dur);
   }
+  let lastScream = 0, screams = 0;
+  // silly cartoon "wheeee-aaah!" for people dropping in: a buzzy voice through two vowel formants, pitch swooping down with a wobble
+  function scream(pet) {
+    if (!ctx || muted) return; const n = performance.now(); if (n - lastScream < (pet ? 150 : 260) || screams > 2) return; lastScream = n;
+    const t = ctx.currentTime, p0 = pet ? 1100 + Math.random() * 300 : 520 + Math.random() * 260, dur = pet ? 0.16 : 0.75;
+    const o = ctx.createOscillator(); o.type = pet ? 'triangle' : 'sawtooth';
+    o.frequency.setValueAtTime(p0 * 0.8, t); o.frequency.exponentialRampToValueAtTime(p0 * 1.15, t + dur * 0.18); o.frequency.exponentialRampToValueAtTime(p0 * 0.45, t + dur);
+    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 9; lg.gain.value = p0 * 0.05; lfo.connect(lg); lg.connect(o.frequency);
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(pet ? 0.12 : 0.16, t + 0.03); g.gain.setValueAtTime(pet ? 0.12 : 0.16, t + dur * 0.6); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    let last = g;
+    if (!pet) { const f1 = ctx.createBiquadFilter(), f2 = ctx.createBiquadFilter(), mix = ctx.createGain(); f1.type = f2.type = 'bandpass'; f1.frequency.value = 850; f2.frequency.value = 1250; f1.Q.value = f2.Q.value = 6; mix.gain.value = 2.2;
+      f1.frequency.linearRampToValueAtTime(700, t + dur); g.connect(f1); g.connect(f2); f1.connect(mix); f2.connect(mix); last = mix; }
+    o.connect(g); last.connect(master); screams++; o.onended = () => { screams--; };
+    o.start(t); lfo.start(t); o.stop(t + dur + 0.02); lfo.stop(t + dur + 0.02);
+  }
   return {
-    init,
+    init, scream,
     swallow(size, skin) {
       const n = performance.now(); if (n - lastSw < 70) return; lastSw = n; // dense parks: don't stack dozens of voices
       const base = 520 / (1 + size * 0.45);
