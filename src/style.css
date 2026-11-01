@@ -39,3 +39,6 @@ svg{width:55%;height:55%;fill:#fff;stroke:#fff}
 @keyframes pulse{50%{transform:scale(1.04)}}
 .back{position:absolute;left:calc(env(safe-area-inset-left) + 16px);top:calc(env(safe-area-inset-top) + 16px)}
 .wardStars{position:absolute;right:calc(env(safe-area-inset-right) + 16px);top:calc(env(safe-area-inset-top) + 22px)}
+
+#stick{position:fixed;left:-50px;top:-50px;width:100px;height:100px;border-radius:50%;border:3px solid rgba(255,255,255,.55);background:rgba(255,255,255,.12);pointer-events:none;display:none;z-index:5}
+#stick>div{position:absolute;left:30px;top:30px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.7)}

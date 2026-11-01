@@ -35,31 +35,33 @@ function startGame(m) {
   cam.x = p; cam.y = p;
   show('hud'); hide('home'); hide('ward'); hide('pause'); hide('end'); updateHud();
 }
-function goHome() {
+function goHome() { fingerDown = false; activeId = null; hideStick();
   playing = false; paused = false; mode = null; hide('hud'); hide('pause'); hide('end'); hide('ward'); show('home'); refreshStars();
 }
 const show = id => $(id).classList.remove('hidden'), hide = id => $(id).classList.add('hidden');
 
 // ---------- input: one finger, relative drag, mash-safe ----------
-let activeId = null, lastPX = 0, lastPY = 0, fingerDown = false;
+let activeId = null, lastPX = 0, lastPY = 0, fingerDown = false, anchorX = 0, anchorY = 0;
+const STICK = 60; // px of finger travel for full speed
+const stickEl = document.createElement('div'); stickEl.id = 'stick'; stickEl.innerHTML = '<div></div>'; document.body.appendChild(stickEl);
+function showStick() { stickEl.style.display = 'block'; stickEl.style.transform = `translate(${anchorX}px,${anchorY}px)`; stickEl.firstChild.style.transform = `translate(${lastPX - anchorX}px,${lastPY - anchorY}px)`; }
+function hideStick() { stickEl.style.display = 'none'; }
 cv.addEventListener('pointerdown', e => {
   e.preventDefault(); Sfx.init();
   if (activeId !== null || !playing || paused) return;
   activeId = e.pointerId; lastPX = e.clientX; lastPY = e.clientY; fingerDown = true;
-  hole.tx = hole.x; hole.ty = hole.y; // pressing never moves the hole: tracking starts from where it already is
+  anchorX = e.clientX; anchorY = e.clientY; showStick(); // floating joystick: the press point is the centre; pressing alone never moves the hole
   try { cv.setPointerCapture(e.pointerId); } catch (_) {}
 });
 cv.addEventListener('pointermove', e => {
   if (e.pointerId !== activeId) return; e.preventDefault();
-  // 1:1 drag: the hole moves by exactly the ground distance the finger slid over (same camera for both
-  // points, so camera scrolling can't feed back into the target). No jump on press, no runaway at edges.
-  const a = screenToWorld(lastPX, lastPY), b = screenToWorld(e.clientX, e.clientY); lastPX = e.clientX; lastPY = e.clientY;
-  let tx = hole.tx + (b.x - a.x), ty = hole.ty + (b.y - a.y);
-  const lx = tx - hole.x, ly = ty - hole.y, L = Math.hypot(lx, ly), lead = 60 + hole.R; // never let the target run ahead
-  if (L > lead) { tx = hole.x + lx / L * lead; ty = hole.y + ly / L * lead; }
-  hole.tx = clamp(tx, 30, W.SIZE - 30); hole.ty = clamp(ty, 30, W.SIZE - 30);
+  lastPX = e.clientX; lastPY = e.clientY;
+  // anchor trails behind the finger once it's far away, so reversing direction is instant
+  const vx = lastPX - anchorX, vy = lastPY - anchorY, L = Math.hypot(vx, vy);
+  if (L > STICK) { anchorX = lastPX - vx / L * STICK; anchorY = lastPY - vy / L * STICK; }
+  showStick();
 });
-const endPtr = e => { if (e.pointerId === activeId) { activeId = null; fingerDown = false; } };
+const endPtr = e => { if (e.pointerId === activeId) { activeId = null; fingerDown = false; hideStick(); } };
 cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr); cv.addEventListener('lostpointercapture', endPtr);
 ['gesturestart', 'gesturechange', 'contextmenu', 'dblclick'].forEach(ev => document.addEventListener(ev, e => e.preventDefault()));
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
@@ -68,7 +70,7 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 
 // debounced buttons so mashing can't double-fire
 function btn(id, fn) { let last = 0; $(id).addEventListener('pointerup', e => { e.stopPropagation(); const n = performance.now(); if (n - last < 350) return; last = n; Sfx.init(); Sfx.tap(); fn(); }); }
-function doPause() { if (!playing || ending) return; paused = true; activeId = null; show('pause'); }
+function doPause() { if (!playing || ending) return; paused = true; activeId = null; fingerDown = false; hideStick(); show('pause'); }
 btn('btnPause', doPause);
 btn('btnHome', goHome);
 btn('btnResume', () => { paused = false; hide('pause'); });
@@ -128,10 +130,14 @@ function update(dt) {
 
   if (AUTOPLAY) autoSteer();
   // hole glides toward target (smoothed, speed-capped)
-  if (!fingerDown && !AUTOPLAY) { hole.tx = hole.x; hole.ty = hole.y; }
-  const dx = hole.tx - hole.x, dy = hole.ty - hole.y, d = Math.hypot(dx, dy), maxV = (700 + hole.R * 4) * dt;
+  if (!AUTOPLAY) { // steer: direction = finger offset from the press point, speed grows with the offset
+    hole.tx = hole.x; hole.ty = hole.y;
+    if (fingerDown) { const vx = lastPX - anchorX, vy = lastPY - anchorY, L = Math.hypot(vx, vy);
+      if (L > 6) { const sp = (170 + hole.R * 2.4) * Math.min(1, (L - 6) / (STICK - 6)), wy = vy / TILT, n = Math.hypot(vx, wy);
+        hole.tx = clamp(hole.x + vx / n * sp * dt, 30, W.SIZE - 30); hole.ty = clamp(hole.y + wy / n * sp * dt, 30, W.SIZE - 30); } } }
+  const dx = hole.tx - hole.x, dy = hole.ty - hole.y, d = Math.hypot(dx, dy), maxV = (AUTOPLAY ? 380 + hole.R * 3 : 1e5) * dt;
   // glued to the finger: closes ~95% of the gap in 0.15s; the cap only stops wild teleports on a jump-tap
-  if (d > 0.01) { const k = Math.min(1, maxV / d, 1 - Math.exp(-20 * dt)); hole.x += dx * k; hole.y += dy * k; }
+  if (d > 0.01) { const k = Math.min(1, maxV / d); hole.x += dx * k; hole.y += dy * k; }
   const targetR = HOLE_R[hole.level];
   hole.R += (targetR - hole.R) * Math.min(1, dt * 4); hole.pulse = Math.max(0, hole.pulse - dt * 2); hole.gulp = Math.max(0, (hole.gulp || 0) - dt * 3);
 
@@ -164,11 +170,7 @@ function update(dt) {
   // camera follows hole, zooms out as it grows
   const want = Math.min(Wd, Ht) / Math.max(380, hole.R * 7);
   cam.s += (want - cam.s) * Math.min(1, dt * 2);
-  { // camera only scrolls when the hole leaves the middle of the screen, so the hole stays under the finger
-    const ex = hole.x - cam.x, ey = hole.y - cam.y, dzx = Wd * 0.22 / cam.s, dzy = Ht * 0.18 / cam.s / TILT;
-    const kx = Math.min(1, dt * 5);
-    if (ex > dzx) cam.x += (ex - dzx) * kx; else if (ex < -dzx) cam.x += (ex + dzx) * kx;
-    if (ey > dzy) cam.y += (ey - dzy) * kx; else if (ey < -dzy) cam.y += (ey + dzy) * kx; }
+  cam.x += (hole.x - cam.x) * Math.min(1, dt * 8); cam.y += (hole.y - cam.y) * Math.min(1, dt * 8);
 }
 
 // Demo/test autoplay (only via ?autoplay=1 in the URL; never shown to players)
