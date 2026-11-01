@@ -201,22 +201,26 @@ drawMuteIcon();
 // ---------- wardrobe: skins unlock automatically as total stars grow ----------
 function buildWardrobe() {
   const box = $('skins'); box.innerHTML = '';
+  save.owned = save.owned || []; { const eq = SKINS.find(k => k.id === save.skin); if (eq && eq.coins && !save.owned.includes(eq.id)) save.owned.push(eq.id); } // older saves keep what they wear
   for (const s of SKINS) {
-    const unlocked = save.stars >= s.cost && save.coins >= (s.coins || 0);
+    const unlocked = s.coins ? save.owned.includes(s.id) : save.stars >= s.cost, afford = s.coins && !unlocked && save.coins >= s.coins;
     const card = document.createElement('button');
-    card.className = 'skin' + (save.skin === s.id ? ' on' : '') + (unlocked ? '' : ' locked');
+    card.className = 'skin' + (save.skin === s.id ? ' on' : '') + (unlocked ? '' : ' locked') + (afford ? ' can' : ''); card.dataset.id = s.id;
     const c = document.createElement('canvas'); c.width = c.height = 200; const cx = c.getContext('2d');
     cx.fillStyle = '#3a3f47'; cx.fillRect(0, 0, 200, 200); drawHole(cx, 100, 100, 58, s.id, 0);
     card.appendChild(c);
     const cost = document.createElement('div'); cost.className = 'cost';
     cost.innerHTML = unlocked ? (save.skin === s.id ? '<span class="star">✔</span>' : '') : '<span>🔒</span>' + (s.coins ? '<span class="coin"></span>' + s.coins : '<span class="star">★</span>' + s.cost);
+    const nm = document.createElement('div'); nm.className = 'sname'; nm.textContent = s.name; card.appendChild(nm);
     card.appendChild(cost);
-    card.addEventListener('pointerup', () => { if (!unlocked) { Sfx.teeter(); return; } save.skin = s.id; persist(); Sfx.star(); buildWardrobe(); });
+    card.addEventListener('pointerup', () => {
+      if (afford) { save.coins -= s.coins; save.owned.push(s.id); save.skin = s.id; persist(); Sfx.star(); buildWardrobe(); return; } // pay with coins earned in play
+      if (!unlocked) { Sfx.teeter(); return; } save.skin = s.id; persist(); Sfx.star(); buildWardrobe(); });
     box.appendChild(card);
   }
   refreshStars();
 }
-function refreshStars() { $('coinCount').textContent = runCoins; $('starCountMap').textContent = save.stars; $('coinCountMap').textContent = save.coins; $('starCount').textContent = save.stars; $('starCountHome').textContent = save.stars; $('starCountWard').textContent = save.stars; }
+function refreshStars() { $('coinCount').textContent = runCoins; $('starCountMap').textContent = save.stars; $('coinCountMap').textContent = save.coins; $('starCount').textContent = save.stars; $('starCountHome').textContent = save.stars; $('starCountWard').textContent = save.stars; if ($('coinCountWard')) $('coinCountWard').textContent = save.coins; }
 function updateHud() {
   const need = LEVEL_NEED[hole.level];
   $('growFill').style.width = (hole.level >= 8 ? 100 : Math.min(100, hole.pts / need * 100)) + '%';
