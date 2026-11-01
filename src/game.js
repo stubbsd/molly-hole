@@ -71,6 +71,7 @@ const STOPS = [
 ];
 const stopOpen = i => !STOPS[i].soon && (i === 0 || !!save.done[STOPS[i - 1].id] || !!save.done[STOPS[i].id]);
 function stopPos(i) { const inr = $('mapInner'); return { x: STOPS[i].px * inr.clientWidth, y: STOPS[i].py * inr.clientHeight }; }
+const LOCK_SVG = '<svg class="lock" viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="lkS" x1="0" x2="1"><stop offset="0" stop-color="#9aa6b8"/><stop offset=".45" stop-color="#f4f7fb"/><stop offset="1" stop-color="#7d889a"/></linearGradient><linearGradient id="lkB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset=".55" stop-color="#f7b733"/><stop offset="1" stop-color="#d98a12"/></linearGradient></defs><ellipse cx="32" cy="58" rx="17" ry="3.5" fill="rgba(0,0,0,.22)"/><path d="M19 30V22a13 13 0 0 1 26 0v8" fill="none" stroke="#5a6475" stroke-width="10" stroke-linecap="round"/><path d="M19 30V22a13 13 0 0 1 26 0v8" fill="none" stroke="url(#lkS)" stroke-width="6.5" stroke-linecap="round"/><rect x="10" y="27" width="44" height="29" rx="10" fill="#b8730c"/><rect x="10" y="26" width="44" height="27" rx="10" fill="url(#lkB)"/><rect x="15" y="29" width="30" height="5" rx="2.5" fill="#fff6c9" opacity=".75"/><circle cx="32" cy="39" r="5" fill="#7a4a08"/><path d="M29.6 41.5h4.8l1.3 7.5h-7.4z" fill="#7a4a08"/><circle cx="30.6" cy="37.6" r="1.4" fill="#c99447"/></svg>';
 function buildMap() {
   const inner = $('mapInner'); inner.querySelectorAll('.stop').forEach(e => e.remove());
   let next = -1;
@@ -79,7 +80,7 @@ function buildMap() {
     if (open && !done && next < 0) next = i;
     b.className = 'stop' + (st.gift ? ' gift' : '') + (open ? '' : ' locked') + (i === next ? ' next' : '') + (done ? ' done' : '');
     b.style.left = (st.px * 100) + '%'; b.style.top = (st.py * 100) + '%';
-    b.innerHTML = '<span class="face">' + (open ? (st.gift ? '🎁' : st.icon) : '🔒') + '</span>' + (!open && st.soon ? `<span class="wb">${st.icon}</span>` : '') + (done && !st.gift ? `<span class="st">${'★'.repeat(Math.min(3, done))}</span>` : '');
+    b.innerHTML = '<span class="face">' + (open ? (st.gift ? '🎁' : st.icon) : LOCK_SVG) + '</span>' + (!open && st.soon ? `<span class="wb">${st.icon}</span>` : '') + (done && !st.gift ? `<span class="st">${'★'.repeat(Math.min(3, done))}</span>` : '');
     b.addEventListener('pointerup', e => { e.stopPropagation(); Sfx.init(); if (!open) { Sfx.teeter(); b.animate([{ transform: 'rotate(-10deg)' }, { transform: 'rotate(10deg)' }, { transform: 'rotate(0)' }], 300); return; } pickStop(i); });
     inner.appendChild(b);
   });
