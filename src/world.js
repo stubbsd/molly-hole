@@ -30,7 +30,7 @@ const THEMES = {
   district: { kinds: [['shops', .45], ['plaza', .7], ['office', .85], ['highrise', 1]], furn: [['lamp', .25], ['bin', .45], ['tree', .62], ['bench', .72]], veh: [['car', .5], ['taxi', .72], ['tram', 1]], vspr: { tram: ['b-tram', 112, 1], nboat: ['b-nboat', 124] }, flat: true, spr: { tower: ['b-clock', 150] }, marks: true, canal: true },
   village:  { kinds: [['shops', .5], ['office', .66], ['plaza', .86], ['farm', 1]], furn: [['tree', .2], ['bin', .3], ['cone', .45], ['bench', .52], ['lamp', .58]], veh: [['car', .45], ['tractor', .75], ['vbus', 1]], flat: true, spr: { bench: ['v-hedge', 54], tree: ['v-oak', 66], bin: ['v-postbox', 16], cone: ['v-flowers', 30], kiosk: ['v-hay', 80] }, vspr: { tractor: ['v-tractor', 52, 1], vbus: ['v-bus', 104] }, organic: { w: 62, col: '#bfa679', edge: '#8f7a52' } },
   desert:   { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['beach', 1]], furn: [['tree', .22], ['bin', .36], ['cone', .46], ['bench', .52]], veh: [['raptor', .5], ['stego', .78], ['trike', 1]], spr: { bin: ['d-crate', 22], cone: ['m-rock', 14], bench: ['d-boat', 44], tree: ['d-palm', 52], kiosk: ['d-lighthouse', 60], shop: ['d-hut', 125], office: ['d-volcano', 230], tower: ['d-brachio', 300] }, vspr: { raptor: ['d-raptor', 58], stego: ['d-stego', 100], trike: ['d-trike', 104] }, flat: true, organic: { w: 70, col: '#f2e2b4', edge: '#cdb27a' } },
-  moon:     { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['craters', 1]], furn: [['cone', .2], ['bin', .34], ['tree', .44], ['bench', .54]], veh: [['rover', .55], ['shuttle', 1]], spr: { cone: ['m-rock', 16], bin: ['m-crate', 22], bench: ['m-solar', 38], tree: ['m-dish', 44], kiosk: ['m-dome', 90], shop: ['m-hab', 150], office: ['m-greenhouse', 210], tower: ['m-rocket', 170] }, vspr: { rover: ['m-rover', 60], shuttle: ['m-shuttle', 110] }, flat: true, organic: { w: 62, col: '#6c6f78', edge: '#4f525a', tyre: 1 } },
+  moon:     { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['craters', 1]], furn: [['cone', .2], ['bin', .34], ['tree', .44], ['bench', .54]], veh: [['rover', .55], ['shuttle', 1]], spr: { cone: ['m-rock', 16], bin: ['m-crate', 22], bench: ['m-solar', 38], tree: ['m-dish', 44], kiosk: ['m-dome', 90], shop: ['m-hab', 150], office: ['m-greenhouse', 210], tower: ['m-rocket', 170] }, vspr: { rover: ['m-rover', 60], shuttle: ['m-shuttle', 110, 1] }, flat: true, organic: { w: 62, col: '#6c6f78', edge: '#4f525a', tyre: 1 } },
 };
 // moving things: size class + body for each themed vehicle
 const VEH = { car: ['car', 48, 24], taxi: ['taxi', 48, 22], bus: ['bus', 96, 28], tractor: ['car', 48, 26], raptor: ['car', 48, 22], stego: ['bus', 90, 30], trike: ['bus', 90, 30], rover: ['car', 50, 26], shuttle: ['bus', 96, 30], vbus: ['bus', 96, 28], tram: ['bus', 100, 28], nboat: ['bus', 110, 30] };
@@ -204,34 +204,20 @@ function noiseCanvas(size, base, vary, fn) {
   for (let i = 0; i < size * size; i++) { const n = (Math.random() - 0.5) * vary; d[i * 4] = base[0] + n; d[i * 4 + 1] = base[1] + n; d[i * 4 + 2] = base[2] + n; d[i * 4 + 3] = 255; }
   x.putImageData(id, 0, 0); if (fn) fn(x, size); return c;
 }
+// plain flat cartoon ground (v2 look): bold solid colours, no painted texture
 const GROUND = {
-  city: { asph: [72, 76, 84], pave: [196, 192, 184], plaza: [214, 204, 186], grass: [96, 150, 72], kerb: '#8d8a84' },
-  district: { asph: [70, 70, 76], pave: [200, 180, 160], plaza: [190, 160, 130], grass: [96, 150, 72], kerb: '#8a6f5a' },
-  village: { asph: [88, 88, 86], pave: [176, 160, 128], plaza: [110, 160, 80], grass: [100, 152, 70], kerb: '#4f7a3a' },
-  desert: { asph: [214, 190, 140], pave: [236, 214, 160], plaza: [232, 206, 150], grass: [140, 170, 80], kerb: '#c9a874' },
-  moon: { asph: [86, 90, 100], pave: [150, 150, 156], plaza: [170, 170, 176], grass: [128, 128, 134], kerb: '#6d7078' },
+  city: { asph: [78, 82, 96], pave: [214, 214, 222], plaza: [232, 224, 206], grass: [108, 192, 78], kerb: '#9a9aa6' },
+  district: { asph: [78, 82, 96], pave: [226, 208, 186], plaza: [236, 214, 180], grass: [108, 192, 78], kerb: '#a8907a' },
+  village: { asph: [96, 96, 104], pave: [222, 200, 150], plaza: [118, 196, 82], grass: [108, 192, 78], kerb: '#5e9a44' },
+  desert: { asph: [222, 190, 128], pave: [244, 220, 160], plaza: [240, 212, 150], grass: [150, 196, 90], kerb: '#d0aa70' },
+  moon: { asph: [98, 102, 116], pave: [168, 170, 180], plaza: [186, 188, 198], grass: [150, 152, 162], kerb: '#7a7e8a' },
 };
+function flatPat(ctx, rgb) { const c = document.createElement('canvas'); c.width = c.height = 8; const x = c.getContext('2d'); x.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`; x.fillRect(0, 0, 8, 8); return ctx.createPattern(c, 'repeat'); }
 function makePatterns(ctx) {
   const G = GROUND[THEME];
-  const asph = noiseCanvas(128, G.asph, 14, (x, s) => { for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(${Math.random() < .5 ? '255,255,255' : '0,0,0'},.05)`; x.beginPath(); x.arc(Math.random() * s, Math.random() * s, 2 + Math.random() * 8, 0, 7); x.fill(); } });
-  const pave = noiseCanvas(64, G.pave, 10, (x, s) => { if (THEME === 'desert' || THEME === 'moon') return craters(x, s); x.strokeStyle = 'rgba(90,85,80,.35)'; x.lineWidth = 1.2; for (let i = 0; i <= s; i += 16) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, s); x.moveTo(0, i); x.lineTo(s, i); x.stroke(); } });
-  const plaza = noiseCanvas(96, G.plaza, 10, (x, s) => { if (THEME !== 'city' && THEME !== 'district') return craters(x, s); x.strokeStyle = 'rgba(120,105,90,.3)'; x.lineWidth = 1.5; for (let i = 0; i <= s; i += 24) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, s); x.moveTo(0, i); x.lineTo(s, i); x.stroke(); } x.fillStyle = 'rgba(160,140,120,.25)'; x.fillRect(0, 0, 24, 24); x.fillRect(48, 48, 24, 24); });
-  const grass = noiseCanvas(96, G.grass, 30, (x, s) => { for (let i = 0; i < 200; i++) { x.fillStyle = `rgba(${Math.random() < .5 ? '40,90,30' : '150,200,100'},.25)`; x.fillRect(Math.random() * s, Math.random() * s, 2, 3); } });
-  PAT = {};
-  const O = { village: [[92, 140, 62], [118, 160, 78], [206, 172, 92], [184, 160, 116]], desert: [[226, 202, 150], [236, 216, 170], [244, 230, 196], [236, 206, 150]], moon: [[132, 132, 138], [156, 156, 162], [104, 104, 112], [96, 98, 106]] }[THEME];
-  if (O) {
-    const blade = (x, s, R) => { for (let i = 0; i < 900; i++) { const px = R() * s, py = R() * s; x.strokeStyle = R() < .5 ? 'rgba(40,80,20,.35)' : 'rgba(190,220,120,.3)'; x.lineWidth = 1; x.beginPath(); x.moveTo(px, py); x.lineTo(px + (R() - .5) * 3, py - 3 - R() * 4); x.stroke(); } };
-    const ripple = (x, s, R) => { x.strokeStyle = 'rgba(150,115,60,.18)'; x.lineWidth = 2; for (let i = 0; i < 26; i++) { const y = R() * s; x.beginPath(); for (let k = 0; k <= s; k += 8) x.lineTo(k, y + Math.sin(k / 22 + i) * 4); x.stroke(); } };
-    const pebble = (x, s, R) => { for (let i = 0; i < 260; i++) { x.fillStyle = R() < .5 ? (THEME === 'desert' ? 'rgba(165,110,50,.3)' : 'rgba(60,45,30,.25)') : 'rgba(255,245,225,.22)'; x.beginPath(); x.ellipse(R() * s, R() * s, 1 + R() * 2.5, 1 + R() * 1.8, R() * 3, 0, 7); x.fill(); } };
-    const pits = (x, s, R) => { for (let i = 0; i < 26; i++) { const px = R() * s, py = R() * s, r = 2 + R() * 10; x.fillStyle = 'rgba(40,40,50,.22)'; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill(); x.strokeStyle = 'rgba(255,255,255,.2)'; x.lineWidth = 1.5; x.beginPath(); x.arc(px - 1, py - 1, r, 3.4, 5.6); x.stroke(); } pebble(x, s, R); };
-    const ground = THEME === 'village' ? blade : THEME === 'desert' ? ripple : pits;
-    PAT.obase = ctx.createPattern(richTex(256, O[0], 11, ground), 'repeat');
-    PAT.oclear = ctx.createPattern(richTex(256, O[1], 23, ground), 'repeat');
-    PAT.ofield = ctx.createPattern(richTex(256, O[2], 37, THEME === 'village' ? (x, s, R) => { x.strokeStyle = 'rgba(120,85,30,.3)'; x.lineWidth = 3; for (let k = 0; k < s; k += 16) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k, s); x.stroke(); } for (let i = 0; i < 1400; i++) { const px = R() * s, py = R() * s; x.strokeStyle = R() < .5 ? 'rgba(150,105,35,.45)' : 'rgba(255,232,150,.5)'; x.lineWidth = 1.2; x.beginPath(); x.moveTo(px, py); x.lineTo(px + (R() - .5) * 2, py - 5 - R() * 5); x.stroke(); } } : ground), 'repeat');
-    PAT.stone = ctx.createPattern(richTex(64, [128, 122, 108], 71, (x, s, R) => { for (let i = 0; i < 70; i++) { const px = R() * s, py = R() * s, w = 4 + R() * 6, h = 3 + R() * 4, v = 110 + R() * 70 | 0; x.fillStyle = `rgb(${v},${v - 4},${v - 16})`; x.strokeStyle = 'rgba(30,28,22,.7)'; x.lineWidth = 1; x.beginPath(); x.ellipse(px, py, w, h, R() * 3, 0, 7); x.fill(); x.stroke(); } }), 'repeat');
-    PAT.opath = ctx.createPattern(richTex(128, O[3], 51, pebble), 'repeat');
-  }
-  Object.assign(PAT, { asph: ctx.createPattern(asph, 'repeat'), pave: ctx.createPattern(pave, 'repeat'), plaza: ctx.createPattern(plaza, 'repeat'), grass: ctx.createPattern(grass, 'repeat') });
+  PAT = { asph: flatPat(ctx, G.asph), pave: flatPat(ctx, G.pave), plaza: flatPat(ctx, G.plaza), grass: flatPat(ctx, G.grass) };
+  const O = { village: [[108, 192, 78], [126, 204, 92], [242, 204, 92], [226, 200, 150]], desert: [[240, 210, 150], [246, 222, 170], [250, 232, 196], [232, 198, 140]], moon: [[150, 152, 162], [170, 172, 182], [120, 122, 134], [112, 116, 128]] }[THEME];
+  if (O) Object.assign(PAT, { obase: flatPat(ctx, O[0]), oclear: flatPat(ctx, O[1]), ofield: flatPat(ctx, O[2]), opath: flatPat(ctx, O[3]), stone: flatPat(ctx, THEME === 'village' ? [176, 172, 164] : O[3].map(v => v - 20)) });
 }
 
 // layered painterly texture: soft light/dark blotches at several scales + fine detail strokes
