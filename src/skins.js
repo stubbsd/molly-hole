@@ -23,15 +23,19 @@ function drawHole(ctx, x, y, R, skinId, t) { // simplified flat look: solid rim,
     ctx.translate(x, y); ctx.rotate(-t * 0.8); ctx.drawImage(im, -w / 2, -h / 2, w, h); ctx.restore(); return; // rim spins anti-clockwise
   }
   // ref-video look: chunky soft white rim with a glossy inner lip and a deep purple throat
-  ctx.fillStyle = 'rgba(40,60,10,.22)'; ctx.beginPath(); ctx.arc(x, y + rimW * 0.5, R + rimW * 1.6, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(40,60,10,.22)'; ctx.beginPath(); ctx.arc(x, y, R + rimW * 1.6, 0, 7); ctx.fill();
   ctx.fillStyle = s.rim[0]; ctx.beginPath(); ctx.arc(x, y, R + rimW * 1.3, 0, 7); ctx.fill();
   { // rim spins anti-clockwise: soft pastel notches round the white edge (screen y is down, so negative angle = anti-clockwise)
     const n = 12, a0 = -t * 0.8, rr = R + rimW * 0.9; ctx.strokeStyle = s.rim[1] === '#e9e4f5' ? '#cdb8f0' : s.rim[1]; ctx.lineWidth = rimW * 0.55; ctx.lineCap = 'round';
     ctx.beginPath(); for (let i = 0; i < n; i++) { const a = a0 + i * 6.2832 / n; ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); ctx.arc(x, y, rr, a, a + 0.22); } ctx.stroke();
   }
-  ctx.fillStyle = s.rim[1]; ctx.beginPath(); ctx.arc(x, y + rimW * 0.25, R + rimW * 0.5, 0, 7); ctx.fill();
+  ctx.fillStyle = s.rim[1]; ctx.beginPath(); ctx.arc(x, y, R + rimW * 0.5, 0, 7); ctx.fill();
   let g = THROAT.get(s); if (!g) { g = ctx.createRadialGradient(0, 0.3, 0.1, 0, 0, 1); g.addColorStop(0, '#240833'); g.addColorStop(0.7, s.inner || '#1a1030'); g.addColorStop(1, '#3b0f55'); THROAT.set(s, g); } // GC: cached unit gradient
-  ctx.translate(x, y); ctx.scale(R, R); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, (R - rimW * 0.05) / R, 0, 7); ctx.fill();
+  ctx.translate(x, y); ctx.scale(R, R); const rr = (R - rimW * 0.05) / R;
+  // lies flat in the ground plane: every ring is concentric (no downward offsets, which made it read as a dish tipped at the camera),
+  // and like a real pit seen from this camera the FAR inner wall shows as a band at the top, the near wall is hidden by the near rim
+  ctx.fillStyle = '#5b2380'; ctx.beginPath(); ctx.arc(0, 0, rr, 0, 7); ctx.fill();
+  ctx.save(); ctx.clip(); ctx.translate(0, 0.42); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, rr, 0, 7); ctx.fill(); ctx.restore();
   ctx.restore();
 }
 

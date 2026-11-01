@@ -1,7 +1,7 @@
 const hyp = (a, b) => Math.sqrt(a * a + b * b); // GC: Math.hypot boxes its varargs in V8/JSC
 // Harbour Heights: procedural high-rise city. All art drawn on canvas.
 const W = {
-  N: 7, PITCH: 420, ROAD: 110, PAVE: 26,
+  N: 5, PITCH: 420, ROAD: 110, PAVE: 26, /* N was 7 (3050px square town); 5 = 2210px, ~52% of the area */
   get SIZE() { return this.N * this.PITCH + this.ROAD; },
 };
 // Size class -> hole level needed. r is the "body" radius used for swallowing.

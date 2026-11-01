@@ -62,7 +62,7 @@ function goMap() {
   hide('hud'); hide('pause'); hide('end'); hide('ward'); hide('home'); hide('timeup'); show('map'); buildMap();
 }
 // mid-level snapshot so an iOS interrupt (or Safari dropping the tab) never loses the level
-const SNAP_KEY = 'mollyHole.snap';
+const SNAP_KEY = 'mollyHole.snap2'; // map shrank: never resume an old-size snapshot
 function saveSnap() {
   if (!playing || ending) return;
   const gone = []; const have = new Set(); for (const o of objs) if (o.uid !== undefined) have.add(o.uid); for (let i = 0; i < city.nObjs; i++) if (!have.has(i)) gone.push(i);
