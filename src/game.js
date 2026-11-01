@@ -315,7 +315,7 @@ function update(dt) {
     const q = respawnQ[i]; if (time < q.at) continue;
     if (Math.hypot(q.o.x - hole.x, q.o.y - hole.y) > hole.R + q.o.r + 250) { q.o.state = 'idle'; q.o.ft = 0; q.o.pop = 1; objs.push(q.o); respawnQ.splice(i, 1); }
   }
-  updateParts(dt); for (let i = pops.length - 1; i >= 0; i--) if ((pops[i].t += dt) > 0.9) pops.splice(i, 1);
+  updateParts(dt); for (let i = yips.length - 1; i >= 0; i--) if ((yips[i].t += dt) > 1.3) yips.splice(i, 1); for (let i = pops.length - 1; i >= 0; i--) if ((pops[i].t += dt) > 0.9) pops.splice(i, 1);
   if (mode === 'timed' && !ringDone && !ending) {
     ringT += dt; $('ring').style.setProperty('--p', Math.min(100, ringT / RING_T * 100).toFixed(1) + '%');
     if (ringT >= RING_T) { ringDone = true; paused = true; fingerDown = false; activeId = null; hideStick(); show('timeup'); } // nothing fails: Continue or Exit
@@ -346,13 +346,13 @@ function autoSteer() {
   }
   if (best) { hole.tx = clamp(best.x, 30, W.SIZE - 30); hole.ty = clamp(best.y, 30, W.SIZE - 30); }
 }
-window.__molly = { vehicles: () => vehicles.map(v => ({ type: v.type, vspr: v.vspr || null, x: v.x, y: v.y, angle: v.angle, dir: v.lane.dir, state: v.state })), get orderIdx() { return orderIdx; }, get ring() { return ringT; }, goMap: () => goMap(), get coins() { return save.coins; }, hole, get mode() { return mode; }, get playing() { return playing; }, get paused() { return paused; }, get nParts() { return parts.length; }, birds: () => birds.map(b => ({ x: b.x, y: b.y, kind: b.kind })), fw: () => firework(), start: (m, w) => startGame(m, w), get time() { return time; }, get camS() { return cam.s; }, get angels() { return 0; }, peds: () => peds.map(p => ({ x: p.x, y: p.y })), get swallowed() { return swallowed; }, get scored() { return scored; }, get pts() { return hole.pts; }, get level() { return hole.level; }, targets: () => objs.concat(vehicles).filter(o => o.state === 'idle').map(o => ({ x: o.x, y: o.y, size: o.size, type: o.type, lm: !!o.landmark })), toScreen: (x, y) => { const p = P3(x, y, 0), W2 = cv.width, H2 = cv.height, k = PJ.k, zr = p[1] - PJ.ocy, f = 1 / (1 - zr * k); return [(W2 / 2 + (p[0] - PJ.ocx) * f) / dpr, (H2 / 2 + zr * f) / dpr]; } };
+window.__molly = { vehicles: () => vehicles.map(v => ({ type: v.type, vspr: v.vspr || null, x: v.x, y: v.y, angle: v.angle, dir: v.lane.dir, state: v.state })), get orderIdx() { return orderIdx; }, get ring() { return ringT; }, goMap: () => goMap(), get coins() { return save.coins; }, hole, get mode() { return mode; }, get playing() { return playing; }, get paused() { return paused; }, get nParts() { return parts.length; }, birds: () => birds.map(b => ({ x: b.x, y: b.y, kind: b.kind })), fw: () => firework(), start: (m, w) => startGame(m, w), get time() { return time; }, get camS() { return cam.s; }, get angels() { return 0; }, get yips() { return yips.length; }, peds: () => peds.map(p => ({ x: p.x, y: p.y })), get swallowed() { return swallowed; }, get scored() { return scored; }, get pts() { return hole.pts; }, get level() { return hole.level; }, targets: () => objs.concat(vehicles).filter(o => o.state === 'idle').map(o => ({ x: o.x, y: o.y, size: o.size, type: o.type, lm: !!o.landmark })), toScreen: (x, y) => { const p = P3(x, y, 0), W2 = cv.width, H2 = cv.height, k = PJ.k, zr = p[1] - PJ.ocy, f = 1 / (1 - zr * k); return [(W2 / 2 + (p[0] - PJ.ocx) * f) / dpr, (H2 / 2 + zr * f) / dpr]; } };
 function startFall(o) {
-  o.state = 'fall'; o.ft = 0; o.dur = 0.6 + o.size * 0.1; o.sx = o.x; o.sy = o.y; o.spin = (Math.random() - 0.5) * 2.4; falling.push(o);
+  o.state = 'fall'; o.ft = 0; o.dur = 0.6 + o.size * 0.1; if (o.critter && o.ped) { o.dur = 1.1; if (yips.length < 2) yips.push({ t: 0 }); } o.sx = o.x; o.sy = o.y; o.spin = (Math.random() - 0.5) * 2.4; falling.push(o);
   if (o.critter && o.ped) Sfx.yippee(); else if (o.critter) { Sfx.scream(true); Sfx.loser(); } else Sfx.swallow(o.size, save.skin);
   if (parts.length < MAXP - 20) { const sk = SKINS.find(s => s.id === save.skin); for (let i = 0; i < 0; i++) { const a = i / (6 + o.size) * 6.283; parts.push({ x: o.x, y: o.y, vx: Math.cos(a) * (120 + o.size * 25), vy: Math.sin(a) * (120 + o.size * 25), life: 0.5, col: i % 2 ? sk.rim[0] : '#ffffff', sz: 2 + o.size * 0.6 }); } }
 }
-let swallowed = 0, scored = 0; const pops = [];
+let swallowed = 0, scored = 0; const pops = [], yips = []; // big on-screen YIPPEE! words (max 2 at once)
 function finishFall(o) {
   swallowed++;
   if (o.critter) { critterQ.push({ f: o, at: time + 15 }); hole.pts += 1; scored++; hole.gulp = 0.5; checkLevel(); updateHud(); return; }
@@ -473,6 +473,9 @@ function render() {
       const sq = 1; // ref video: rigid toys drop straight into the void, no squash/stretch // squash on the lip, stretch while falling
       ctx.save(); ctx.globalAlpha = 1;
       if (is3D(o)) { drawBuilding3D(ctx, o, ft * ft * bDims(o).h * 1.1, (hole.x - o.sx) * sl, (hole.y - o.sy) * sl); ctx.restore(); continue; }
+      if (o.critter && o.ped) { // cartoon celebration: big bounce up, two spins, squashy wobble, then down the hole
+        const up = Math.sin(Math.min(1, t * 1.5) * Math.PI) * (30 + pr * 0.4), w = Math.sin(t * 22) * 0.3 * (1 - t), dn = Math.max(0, t - 0.6) / 0.4;
+        ctx.translate(bx, by0 - up + dn * dn * pr * 2); ctx.rotate(t * Math.PI * 4); ctx.scale(1.7 * (1 + w), 1.7 * (1 - w)); drawPed(ctx, o.critter, time); ctx.restore(); continue; }
       ctx.translate(bx, by0 - hop + drop); ctx.rotate(ft * o.spin); const sc = 1; ctx.scale(sc / Math.sqrt(sq), sc * sq);
       if (o.type === 'coin' || o.type === 'gift') drawPickup(ctx, o, time); else if (o.critter) { if (o.ped) drawPed(ctx, o.critter, time); else drawBird(ctx, o.critter, time); }
       else if (o.moving) { const tp = Math.min(1, t * 1.6); ctx.rotate((o.spin > 0 ? 1 : -1) * tp * 0.9); ctx.scale(1, 1 - 0.45 * tp); drawVehicleUp(ctx, o); } // rigid tip: rolls onto its side and noses down into the hole else { const sb = spriteBox(o); if (sb) ctx.drawImage(sb.img, -sb.w / 2, -sb.h, sb.w, sb.h); }
@@ -541,6 +544,12 @@ function render() {
   // depth cues: soft sky haze over the far (top) edge, gentle darkening near the bottom; gradients cached per size
   if (!depthG || depthG.h !== H2) { const t = mctx.createLinearGradient(0, 0, 0, H2 * 0.42); t.addColorStop(0, 'rgba(190,225,255,.55)'); t.addColorStop(1, 'rgba(190,225,255,0)');
     const b = mctx.createLinearGradient(0, H2 * 0.78, 0, H2); b.addColorStop(0, 'rgba(20,30,60,0)'); b.addColorStop(1, 'rgba(20,30,60,.16)'); depthG = { h: H2, t, b }; }
+  if (yips.length) { // chunky YIPPEE! pops in with an overshoot bounce, wiggles, floats up and fades
+    const fz = Math.min(W2, H2) * 0.14; mctx.textAlign = 'center'; mctx.textBaseline = 'middle'; mctx.lineJoin = 'round'; mctx.font = `900 ${fz}px system-ui,sans-serif`;
+    for (const y of yips) { const k = y.t, sc = k < 0.25 ? (k / 0.25) * 1.25 : k < 0.4 ? 1.25 - (k - 0.25) / 0.15 * 0.25 : 1, al = k > 0.9 ? 1 - (k - 0.9) / 0.4 : 1;
+      mctx.save(); mctx.globalAlpha = Math.max(0, al); mctx.translate(W2 / 2, H2 * 0.3 - k * fz * 0.4); mctx.rotate(Math.sin(k * 14) * 0.08); mctx.scale(sc, sc);
+      mctx.lineWidth = fz * 0.2; mctx.strokeStyle = '#6a2aa0'; mctx.strokeText('YIPPEE!', 0, 0); mctx.fillStyle = '#ffe14a'; mctx.fillText('YIPPEE!', 0, 0);
+      mctx.fillStyle = 'rgba(255,255,255,.55)'; mctx.fillText('YIPPEE!', -fz * 0.03, -fz * 0.05); mctx.fillStyle = '#ffd23a'; mctx.fillText('YIPPEE!', 0, fz * 0.02); mctx.restore(); } }
   mctx.fillStyle = depthG.t; mctx.fillRect(0, 0, W2, H2 * 0.42); mctx.fillStyle = depthG.b; mctx.fillRect(0, H2 * 0.78, W2, H2 * 0.22);
 }
 // inverse of the warp: CSS pixel under the finger -> world ground point

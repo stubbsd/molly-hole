@@ -20,7 +20,8 @@ const Sfx = (() => {
   let YIP = null, yipBusy = false, lastYip = 0;
   // people dropping in shout a squeaky "Yippee!": one at a time, at most every 1.2s
   function yippee() { if (!ctx || muted || !YIP || yipBusy) return; const n = performance.now(); if (n - lastYip < 1200) return; lastYip = n; yipBusy = true;
-    const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = YIP; s.playbackRate.value = 0.95 + Math.random() * 0.15; g.gain.value = 0.7; s.connect(g); g.connect(master); s.onended = () => { yipBusy = false; }; s.start(ctx.currentTime + 0.05); }
+    const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = YIP; s.playbackRate.value = 0.97 + Math.random() * 0.1; g.gain.value = 1.3; s.connect(g); g.connect(master); s.onended = () => { yipBusy = false; }; s.start(ctx.currentTime + 0.05);
+    [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.18, 'sine', 0.1, f * 1.5, 0.05 + i * 0.07)); } // + a happy rising whistle
   let LOSER = null, loserBusy = false, lastLoser = 0;
   // silly "I'm a loser!" as things drop in: one at a time, at most every 1.6s, so mashing never stacks it
   function loser() { if (!ctx || muted || !LOSER || loserBusy) return; const n = performance.now(); if (n - lastLoser < 1600) return; lastLoser = n; loserBusy = true;
