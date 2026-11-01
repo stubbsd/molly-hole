@@ -1,7 +1,8 @@
 // Offline cache for Molly Hole. No network calls beyond its own files.
-const CACHE = 'molly-hole-music1';
+const CACHE = 'molly-hole-loser1';
 const FILES = [
   "./",
+  "./assets/sfx-loser.mp3",
   "./assets/icons/icon-1024.png",
   "./assets/map/start-map.webp",
   "./assets/map/plinth.svg",

@@ -5,6 +5,8 @@ const Sfx = (() => {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     ctx = new AC(); master = ctx.createGain(); master.gain.value = muted ? 0 : 0.5; master.connect(ctx.destination);
+    // bundled original clip (precached by the SW, so it works offline); callback decode for older Safari
+    fetch('assets/sfx-loser.mp3').then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b, d => { LOSER = d; }, () => {})).catch(() => {});
     musicGain = ctx.createGain(); musicGain.gain.value = 0.11; // kept well under the swallow/scream SFX (0.15-0.35 on master) musicGain.connect(master);
   }
   function tone(freq, dur, type = 'sine', vol = 0.3, slideTo = null, when = 0, dest = null) {
@@ -14,6 +16,10 @@ const Sfx = (() => {
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g); g.connect(dest || master); o.start(t); o.stop(t + dur + 0.05);
   }
+  let LOSER = null, loserBusy = false, lastLoser = 0;
+  // silly "I'm a loser!" as things drop in: one at a time, at most every 1.6s, so mashing never stacks it
+  function loser() { if (!ctx || muted || !LOSER || loserBusy) return; const n = performance.now(); if (n - lastLoser < 1600) return; lastLoser = n; loserBusy = true;
+    const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = LOSER; s.playbackRate.value = 0.94 + Math.random() * 0.14; g.gain.value = 0.7; s.connect(g); g.connect(master); s.onended = () => { loserBusy = false; }; s.start(ctx.currentTime + 0.12); }
   let NB = null; // one shared noise buffer, made once (no per-swallow allocation)
   function nbuf() { if (!NB) { const len = ctx.sampleRate; NB = ctx.createBuffer(1, len, ctx.sampleRate); const d = NB.getChannelData(0); for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1; } return NB; }
   function tick(when) { const t = ctx.currentTime + when, s = ctx.createBufferSource(); s.buffer = nbuf(); const f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 6000; const g = ctx.createGain(); g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.04); s.connect(f); f.connect(g); g.connect(musicGain); s.start(t); s.stop(t + 0.05); }
@@ -38,11 +44,11 @@ const Sfx = (() => {
     o.start(t); lfo.start(t); o.stop(t + dur + 0.02); lfo.stop(t + dur + 0.02);
   }
   return {
-    init, scream,
+    init, scream, loser,
     swallow(size, skin) {
       const n = performance.now(); if (n - lastSw < 70) return; lastSw = n; // dense parks: don't stack dozens of voices
       const base = 520 / (1 + size * 0.45);
-      tone(base, 0.25 + size * 0.04, 'sine', 0.35, base * 0.45);
+      tone(base, 0.25 + size * 0.04, 'sine', 0.35, base * 0.45); loser();
       if (size >= 4) noise(0.35 + size * 0.05, 0.25, 300 + 1200 / size);
       if (skin === 'tiger') tone(90, 0.3, 'triangle', 0.18, 70);
       if (skin === 'ice') tone(1800, 0.2, 'sine', 0.08, 2400, 0.05);
