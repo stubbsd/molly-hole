@@ -3,7 +3,7 @@
 // After the warp, walls, roofs and floor share one perspective and one set of vanishing points.
 const TEX = {};
 function loadTextures() {
-  return Promise.all(['glass', 'stone', 'dark', 'brick'].map(n => new Promise(res => { const i = new Image(); i.onload = () => { TEX[n] = i; res(); }; i.onerror = res; i.src = 'assets/tex/' + n + '.jpg'; })));
+  return Promise.all(['glass', 'stone', 'dark', 'brick', 'f-cottage', 'f-pub', 'f-church', 'f-terrace', 'f-warehouse'].map(n => new Promise(res => { const i = new Image(); i.onload = () => { TEX[n] = i; res(); }; i.onerror = res; i.src = 'assets/tex/' + n + '.jpg'; })));
 }
 let PJ = null; // set every frame by render()
 function setProjection(p) { // p: {s, camx, camy, ocx, ocy, k}
@@ -19,6 +19,8 @@ function P3(x, y, z) {
 }
 const is3D = o => !o.flat && !o.spr_flat && (o.type === 'office' || o.type === 'tower' || o.type === 'shop');
 function bStyle(o) {
+  if (THEME === 'village') { const D = bDims(o); return o.type === 'tower' ? { tex: 'f-church', tw: D.w, th: D.h, roof: '#5e6670' } : o.type === 'office' ? { tex: 'f-pub', tw: D.w, th: D.h, roof: '#55606b' } : { tex: 'f-cottage', tw: D.w, th: D.h, roof: o.hue < 0.5 ? '#b08a4e' : '#9a5a3c' }; }
+  if (THEME === 'district' && o.type !== 'tower') { const D = bDims(o); return { tex: o.type === 'office' ? 'f-warehouse' : 'f-terrace', tw: D.w, th: D.h, roof: o.hue < 0.5 ? '#4a4f57' : '#5a4638' }; }
   if (THEME === 'district') return o.type === 'tower' ? { tex: 'stone', tw: 56, th: 52, roof: '#6a5f57' } : { tex: 'brick', tw: o.type === 'shop' ? 64 : 70, th: o.type === 'shop' ? 60 : 64, roof: o.hue < 0.5 ? '#4a4f57' : '#5a4638' };
   if (THEME === 'village') return o.type === 'tower' ? { tex: 'stone', tw: 56, th: 52, roof: '#5e6670' } : o.type === 'office' ? { tex: 'stone', tw: 56, th: 52, roof: '#55606b' } : { tex: o.hue < 0.55 ? 'brick' : 'stone', tw: 70, th: 64, roof: o.hue < 0.3 ? '#9c4a35' : o.hue < 0.7 ? '#8a4632' : '#58626d' };
   if (o.type === 'shop') return { tex: 'brick', tw: o.w, th: o.bh, roof: '#6d5a4c' };
@@ -28,7 +30,7 @@ function bStyle(o) {
 }
 function bDims(o) {
   if (THEME === 'district' && o.type === 'office') return { w: o.w * 0.94, d: o.d * 0.8, h: Math.min(170, 110 + o.hue * 80) };
-  if (THEME === 'village') { if (o.type === 'tower') return { w: 120, d: 120, h: 210 }; if (o.type === 'office') return { w: o.w * 0.9, d: o.d * 0.6, h: 90 }; return { w: o.w * 0.8, d: o.d * 0.62, h: 58 }; }
+  if (THEME === 'village') { if (o.type === 'tower') return { w: 120, d: 120, h: 210 }; if (o.type === 'office') return { w: o.w * 0.8, d: o.d * 0.5, h: 110 }; return { w: o.w * 0.78, d: o.d * 0.6, h: 74 }; }
   if (o.type === 'shop') { o.bh = o.bh || Math.max(95, o.ht + 40); return { w: o.w * 0.92, d: o.d * 0.92, h: o.bh }; }
   if (o.type === 'tower') return { w: 160, d: 160, h: 470 };
   const tall = o.spr ? o.ht : o.ht * 1.25;
