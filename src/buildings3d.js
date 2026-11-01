@@ -43,7 +43,9 @@ function pat(ctx, name) { let p = pats.get(name); if (!p && TEX[name]) { p = ctx
 // one wall: corners A->B on the floor, from z0 to z1, outward normal shade
 function wall(ctx, ax, ay, bx, by, z0, z1, st, shade, H) {
   const len = Math.hypot(bx - ax, by - ay), T = TEX[st.tex], tex = pat(ctx, st.tex);
-  const Tw = len / st.tw * T.width, strips = Math.max(2, Math.ceil((z1 - z0) / 40));
+  // whole tiles only, so every window sits fully inside the wall (no half windows hanging off edges)
+  const nx = Math.max(1, Math.round(len / st.tw)), ny = Math.max(1, Math.round(H / st.th)); st = { ...st, th: H / ny };
+  const Tw = nx * T.width, strips = Math.max(2, Math.ceil((z1 - z0) / 40));
   for (let i = 0; i < strips; i++) {
     const za = z0 + (z1 - z0) * i / strips, zb = z0 + (z1 - z0) * (i + 1) / strips; // za bottom, zb top
     const TL = P3(ax, ay, zb), TR = P3(bx, by, zb), BL = P3(ax, ay, za), BR = P3(bx, by, za);

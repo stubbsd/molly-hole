@@ -27,8 +27,8 @@ const LEVEL_NEED = [0, 6, 28, 90, 200, 340, 500, 700, 1e9]; // snappy: ~1-1.5 mi
 let THEME = 'city';
 const THEMES = {
   city:     { kinds: [['highrise', .45], ['office', .6], ['shops', .85], ['plaza', 1]], furn: [['lamp', .22], ['bin', .42], ['cone', .58], ['tree', .66], ['bench', .70]], veh: [['car', .62], ['taxi', .82], ['bus', 1]], spr: {}, marks: true },
-  district: { kinds: [['shops', .45], ['plaza', .7], ['office', .85], ['highrise', 1]], furn: [['lamp', .25], ['bin', .45], ['tree', .62], ['bench', .72]], veh: [['car', .5], ['taxi', .72], ['tram', 1]], vspr: { tram: ['b-tram', 112, 1], nboat: ['b-nboat', 124] }, flat: true, spr: { tower: ['b-clock', 150] }, marks: true, canal: true },
-  village:  { kinds: [['shops', .5], ['office', .66], ['plaza', .86], ['farm', 1]], furn: [['tree', .2], ['bin', .3], ['cone', .45], ['bench', .52], ['lamp', .58]], veh: [['car', .45], ['tractor', .75], ['vbus', 1]], flat: true, spr: { bench: ['v-hedge', 54], tree: ['v-oak', 66], bin: ['v-postbox', 16], cone: ['v-flowers', 30], kiosk: ['v-hay', 80] }, vspr: { tractor: ['v-tractor', 52, 1], vbus: ['v-bus', 104] }, organic: { w: 62, col: '#bfa679', edge: '#8f7a52' } },
+  district: { kinds: [['shops', .45], ['plaza', .7], ['office', .85], ['highrise', 1]], furn: [['lamp', .25], ['bin', .45], ['tree', .62], ['bench', .72]], veh: [['car', .5], ['taxi', .72], ['tram', 1]], vspr: { tram: ['b-tram', 80, 1], nboat: ['b-nboat', 124] }, flat: true, spr: { tower: ['b-clock', 150] }, marks: true, canal: true },
+  village:  { kinds: [['shops', .5], ['office', .66], ['plaza', .86], ['farm', 1]], furn: [['tree', .2], ['bin', .3], ['cone', .45], ['bench', .52], ['lamp', .58]], veh: [['car', .45], ['tractor', .75], ['vbus', 1]], flat: true, spr: { bench: ['v-hedge', 54], tree: ['v-oak', 66], bin: ['v-postbox', 16], cone: ['v-flowers', 30], kiosk: ['v-hay', 80] }, vspr: { tractor: ['v-tractor', 52, 1], vbus: ['v-bus', 78] }, organic: { w: 62, col: '#bfa679', edge: '#8f7a52' } },
   desert:   { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['beach', 1]], furn: [['tree', .22], ['bin', .36], ['cone', .46], ['bench', .52]], veh: [['raptor', .5], ['stego', .78], ['trike', 1]], spr: { bin: ['d-crate', 22], cone: ['m-rock', 14], bench: ['d-boat', 44], tree: ['d-palm', 52], kiosk: ['d-lighthouse', 60], shop: ['d-hut', 125], office: ['d-volcano', 230], tower: ['d-brachio', 300] }, vspr: { raptor: ['d-raptor', 58], stego: ['d-stego', 100], trike: ['d-trike', 104] }, flat: true, organic: { w: 70, col: '#f2e2b4', edge: '#cdb27a' } },
   moon:     { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['craters', 1]], furn: [['cone', .2], ['bin', .34], ['tree', .44], ['bench', .54]], veh: [['rover', .55], ['shuttle', 1]], spr: { cone: ['m-rock', 16], bin: ['m-crate', 22], bench: ['m-solar', 38], tree: ['m-dish', 44], kiosk: ['m-dome', 90], shop: ['m-hab', 150], office: ['m-greenhouse', 210], tower: ['m-rocket', 170] }, vspr: { rover: ['m-rover', 60], shuttle: ['m-shuttle', 110, 1] }, flat: true, organic: { w: 62, col: '#6c6f78', edge: '#4f525a', tyre: 1 } },
 };
@@ -349,19 +349,19 @@ function vehView(o) {
   const cx = Math.cos(o.angle), sy = Math.sin(o.angle), right = cx > 0;
   if (o.vspr) return { img: SPR[o.vspr], w: o.sw, flip: !right !== !!o.vleft };
   const t = o.type, h = o.lane.dir === 'h' || (o.lane.dir === 'p' && Math.abs(cx) > 0.55);
-  if (h) return { img: SPR[t + '-side'], w: t === 'bus' ? 112 : 56, flip: !right !== (t === 'bus') };
-  return { img: SPR[t + (sy > 0 ? '-front' : '-rear')], w: t === 'bus' ? 80 : 28, flip: false };
+  if (h) return { img: SPR[t + '-side'], w: t === 'bus' ? 76 : 46, flip: !right !== (t === 'bus') };
+  return { img: SPR[t + (sy > 0 ? '-front' : '-rear')], w: t === 'bus' ? 38 : 26, flip: false };
 }
 function drawVehicleUp(ctx, o) { // upright space, origin at vehicle ground point
   const v = vehView(o); if (!v.img) return;
   const h = v.w * v.img.height / v.img.width;
   if (o.hover) ctx.translate(0, -18 - Math.sin(performance.now() / 300 + o.hue * 9) * 5);
   if (v.flip) ctx.scale(-1, 1);
-  if (o.vspr) { ctx.drawImage(v.img, -v.w / 2, -h * 0.9, v.w, h); return; }
-  ctx.drawImage(o.type === 'car' && o.hue > 0.15 ? tinted(v.img, o.hue) : v.img, -v.w / 2, -h * 0.72, v.w, h);
+  if (o.vspr) { ctx.drawImage(v.img, -v.w / 2, -h + 8, v.w, h); return; }
+  ctx.drawImage(o.type === 'car' && o.hue > 0.15 ? tinted(v.img, o.hue) : v.img, -v.w / 2, -h + 10, v.w, h); // wheels on the near edge of its own lane
 }
 function drawVehShadow(ctx, o) { // ground space
-  ctx.fillStyle = 'rgba(10,15,30,.35)'; ctx.save(); ctx.translate(o.x + 4, o.y + 4); ctx.rotate(Math.round(o.angle / (Math.PI / 2)) * (Math.PI / 2)); // sprites are cardinal views, so the shadow is too ctx.fillRect(-o.len / 2, -o.wid / 2, o.len, o.wid); ctx.restore();
+  ctx.fillStyle = 'rgba(10,15,30,.35)'; ctx.save(); ctx.translate(o.x + 4, o.y + 4); ctx.rotate(Math.round(o.angle / (Math.PI / 2)) * (Math.PI / 2)); /* sprites are cardinal views, so the shadow is too */ ctx.fillRect(-o.len / 2, -o.wid / 2, o.len, o.wid); ctx.restore();
 }
 // cracked tarmac + glow around the hole (ground space)
 const CRACKS = (() => { const r = rng(99), out = []; for (let i = 0; i < 26; i++) { let a = i / 26 * Math.PI * 2 + r() * 0.2, d = 1, pts = [[Math.cos(a), Math.sin(a)]]; const L = 1.35 + r() * 0.75; while (d < L) { d += 0.12 + r() * 0.12; a += (r() - 0.5) * 0.35; pts.push([Math.cos(a) * d, Math.sin(a) * d]); } out.push(pts); if (r() < 0.5) { const k = 1 + Math.floor(r() * (pts.length - 1)), b = a + (r() < .5 ? .6 : -.6); out.push([pts[k], [pts[k][0] + Math.cos(b) * .3, pts[k][1] + Math.sin(b) * .3]]); } } return out; })();
