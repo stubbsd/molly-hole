@@ -18,6 +18,7 @@ Sfx.setMuted(save.muted);
 let city, objs, vehicles, peds, birds, falling, parts, respawnQ, critterQ = [];
 let mode = null, playing = false, paused = false, ending = 0, runStars = 0, runCoins = 0, time = 0;
 let orderIdx = 0, ringT = 0, ringDone = false, curStop = null;
+const MAXP = 160; // hard cap on live particles (fireworks + swallow sparks) to keep GC calm
 const ORDER = ['bin', 'bench', 'tree', 'car', 'bus'];
 const RING_T = 100; // seconds for the soft timer ring (never shown as numbers)
 const hole = { x: 0, y: 0, tx: 0, ty: 0, R: 14, level: 1, pts: 0, pulse: 0 };
@@ -37,10 +38,10 @@ function startGame(m, world, seed) {
   Sfx.init(); Sfx.startMusic(); newWorld(seed);
   mode = m; playing = true; paused = false; ending = 0; runStars = 0; runCoins = 0; orderIdx = 0; ringT = 0; ringDone = false;
   // start on a road near a corner of the central area
-  const p = W.PITCH * 2 + W.ROAD / 2, lv = m === 'order' ? 5 : m === 'bonus' ? 2 : 1, sx = city.start ? city.start.x : p, sy = city.start ? city.start.y : p;
+  const p = W.PITCH * 2 + W.ROAD / 2, lv = m === 'order' ? orderLv(0) : m === 'bonus' ? 2 : 1, sx = city.start ? city.start.x : p, sy = city.start ? city.start.y : p;
   Object.assign(hole, { x: sx, y: sy, tx: sx, ty: sy, R: HOLE_R[lv], level: lv, pts: 0, pulse: 0 });
   cam.x = sx; cam.y = sy;
-  if (m === 'bonus') spawnPickups(p);
+  if (m === 'bonus') { spawnPickups(p); for (const o of objs) if (o.uid === undefined) o.uid = city.nObjs++; } // pickups get ids too so a bonus level can resume
   $('growWrap').classList.toggle('hidden', m === 'order');
   $('orderStrip').classList.toggle('hidden', m !== 'order'); if (m === 'order') buildStrip();
   $('ring').classList.toggle('hidden', m !== 'timed'); $('ring').style.setProperty('--p', '0%');
@@ -60,7 +61,7 @@ function goMap() {
 // mid-level snapshot so an iOS interrupt (or Safari dropping the tab) never loses the level
 const SNAP_KEY = 'mollyHole.snap';
 function saveSnap() {
-  if (!playing || ending || mode === 'bonus') return;
+  if (!playing || ending) return;
   const gone = []; const have = new Set(); for (const o of objs) if (o.uid !== undefined) have.add(o.uid); for (let i = 0; i < city.nObjs; i++) if (!have.has(i)) gone.push(i);
   try { localStorage.setItem(SNAP_KEY, JSON.stringify({ at: Date.now(), mode, world: curWorld, seed: worldSeed, stop: curStop, hole: { x: hole.x, y: hole.y, level: hole.level, pts: hole.pts }, runStars, runCoins, orderIdx, ringT, swallowed, scored, gone })); } catch (_) {}
 }
@@ -131,6 +132,7 @@ function stripSpr(t) { return (STRIPV[curWorld] || {})[t] || themeSprName(t); }
 function buildStrip() {
   $('orderStrip').innerHTML = ORDER.map((t, i) => `<div class="it ${i < orderIdx ? 'done' : i === orderIdx ? 'now' : ''}"><img src="assets/sprites/${stripSpr(t)}.png" alt=""><b>${i < orderIdx ? '✓' : i + 1}</b></div>`).join('');
 }
+const orderLv = i => Math.max(1, Math.min(8, (TYPES[ORDER[Math.min(i, ORDER.length - 1)]] || { size: 1 }).size)); // hole is just big enough for the next item
 const orderMatch = o => o.type === ORDER[orderIdx] || (ORDER[orderIdx] === 'car' && o.type === 'taxi');
 function spawnPickups(p) {
   if (city.organic) { // coins strung along the winding tracks, gifts every so often
@@ -338,12 +340,11 @@ function autoSteer() {
   }
   if (best) { hole.tx = clamp(best.x, 30, W.SIZE - 30); hole.ty = clamp(best.y, 30, W.SIZE - 30); }
 }
-window.__molly = { get orderIdx() { return orderIdx; }, get ring() { return ringT; }, goMap: () => goMap(), get coins() { return save.coins; }, hole, get mode() { return mode; }, get playing() { return playing; }, get paused() { return paused; }, start: (m, w) => startGame(m, w), get time() { return time; }, get camS() { return cam.s; }, get swallowed() { return swallowed; }, get scored() { return scored; }, get pts() { return hole.pts; }, get level() { return hole.level; }, targets: () => objs.concat(vehicles).filter(o => o.state === 'idle').map(o => ({ x: o.x, y: o.y, size: o.size, type: o.type, lm: !!o.landmark })), toScreen: (x, y) => { const p = P3(x, y, 0), W2 = cv.width, H2 = cv.height, k = PJ.k, zr = p[1] - PJ.ocy, f = 1 / (1 - zr * k); return [(W2 / 2 + (p[0] - PJ.ocx) * f) / dpr, (H2 / 2 + zr * f) / dpr]; } };
+window.__molly = { get orderIdx() { return orderIdx; }, get ring() { return ringT; }, goMap: () => goMap(), get coins() { return save.coins; }, hole, get mode() { return mode; }, get playing() { return playing; }, get paused() { return paused; }, get nParts() { return parts.length; }, birds: () => birds.map(b => ({ x: b.x, y: b.y, kind: b.kind })), fw: () => firework(), start: (m, w) => startGame(m, w), get time() { return time; }, get camS() { return cam.s; }, get swallowed() { return swallowed; }, get scored() { return scored; }, get pts() { return hole.pts; }, get level() { return hole.level; }, targets: () => objs.concat(vehicles).filter(o => o.state === 'idle').map(o => ({ x: o.x, y: o.y, size: o.size, type: o.type, lm: !!o.landmark })), toScreen: (x, y) => { const p = P3(x, y, 0), W2 = cv.width, H2 = cv.height, k = PJ.k, zr = p[1] - PJ.ocy, f = 1 / (1 - zr * k); return [(W2 / 2 + (p[0] - PJ.ocx) * f) / dpr, (H2 / 2 + zr * f) / dpr]; } };
 function startFall(o) {
   o.state = 'fall'; o.ft = 0; o.dur = 0.6 + o.size * 0.1; o.sx = o.x; o.sy = o.y; o.spin = (Math.random() - 0.5) * 2.4; falling.push(o);
   if (o.critter) Sfx.scream(!o.ped); else Sfx.swallow(o.size, save.skin);
-  if (parts.length < 140) { const sk = SKINS.find(s => s.id === save.skin); for (let i = 0; i < 6 + o.size; i++) { const a = i / (6 + o.size) * 6.283; parts.push({ x: o.x, y: o.y, vx: Math.cos(a) * (120 + o.size * 25), vy: Math.sin(a) * (120 + o.size * 25), life: 0.5, col: i % 2 ? sk.rim[0] : '#ffffff', sz: 2 + o.size * 0.6 }); } }
-  if (false) for (let i = 0; i < 0; i++) parts.push({ x: o.x, y: o.y, vx: (Math.random() - 0.5) * 160, vy: (Math.random() - 0.5) * 160, life: 0.6, col: SKINS.find(s => s.id === save.skin).rim[1], sz: 2 + o.size * 0.5 });
+  if (parts.length < MAXP - 20) { const sk = SKINS.find(s => s.id === save.skin); for (let i = 0; i < 6 + o.size; i++) { const a = i / (6 + o.size) * 6.283; parts.push({ x: o.x, y: o.y, vx: Math.cos(a) * (120 + o.size * 25), vy: Math.sin(a) * (120 + o.size * 25), life: 0.5, col: i % 2 ? sk.rim[0] : '#ffffff', sz: 2 + o.size * 0.6 }); } }
 }
 let swallowed = 0, scored = 0;
 function finishFall(o) {
@@ -352,9 +353,9 @@ function finishFall(o) {
   if (o.moving) { o.state = 'idle'; o.along = o.speed > 0 ? -90 : W.SIZE + 90; placeVehicle(o); o.lane = city.lanes[Math.floor(Math.random() * city.lanes.length)]; o.speed = Math.abs(o.speed) * o.lane.sgn; placeVehicle(o); }
   else { const i = objs.indexOf(o); if (i >= 0) objs.splice(i, 1); o.x = o.sx; o.y = o.sy; if (mode === 'free') respawnQ.push({ o, at: time + 20 + Math.random() * 15 }); }
   if (o.type === 'coin') { addCoins(1); updateHud(); return; }
-  if (o.type === 'gift') { addCoins(5); addStars(1); for (let i = 0; i < 30; i++) { const a = i / 30 * 7; parts.push({ x: hole.x, y: hole.y, vx: Math.cos(a) * 220, vy: Math.sin(a) * 220, life: 1, col: GIFTC[i % 4], sz: 4 }); } updateHud(); return; }
+  if (o.type === 'gift') { addCoins(5); addStars(1); for (let i = 0; i < 30 && parts.length < MAXP; i++) { const a = i / 30 * 7; parts.push({ x: hole.x, y: hole.y, vx: Math.cos(a) * 220, vy: Math.sin(a) * 220, life: 1, col: GIFTC[i % 4], sz: 4 }); } updateHud(); return; }
   if (mode === 'order') {
-    orderIdx++; buildStrip(); Sfx.grow();
+    orderIdx++; buildStrip(); Sfx.grow(); if (orderIdx < ORDER.length) hole.level = Math.max(hole.level, orderLv(orderIdx));
     if (orderIdx >= ORDER.length) { addStars(3); Sfx.win(); ending = 3.2; markDone(curStop || 'order1', 3); }
     updateHud(); return;
   }
@@ -374,7 +375,7 @@ function checkLevel() {
   if (hole.level < 8 && mode !== 'order') {
     if (hole.pts >= LEVEL_NEED[hole.level]) {
       hole.pts -= LEVEL_NEED[hole.level]; hole.level++; hole.pulse = 1; Sfx.grow(); addStars(1);
-      for (let i = 0; i < 40; i++) { const a = Math.random() * 7; parts.push({ x: hole.x, y: hole.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, life: 1, col: ['#ffd84a', '#6fe0ff', '#ff7ab8', '#7dff9a'][i % 4], sz: 4 }); }
+      for (let i = 0; i < 40 && parts.length < MAXP; i++) { const a = Math.random() * 7; parts.push({ x: hole.x, y: hole.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, life: 1, col: ['#ffd84a', '#6fe0ff', '#ff7ab8', '#7dff9a'][i % 4], sz: 4 }); }
       if (hole.level >= 8) hole.pts = 0;
     }
   }
@@ -409,7 +410,7 @@ function updateBirds(dt) {
 function firework() {
   const x = cam.x + (Math.random() - 0.5) * Wd / cam.s * 0.8, y = cam.y + (Math.random() - 0.6) * Ht / cam.s * 0.6;
   const col = ['#ffd84a', '#6fe0ff', '#ff7ab8', '#7dff9a', '#ffffff'][Math.floor(Math.random() * 5)];
-  for (let i = 0; i < 40; i++) { const a = i / 40 * 7, sp = 200 + Math.random() * 120; parts.push({ x, y, vx: Math.cos(a) * sp / cam.s * 0.4, vy: Math.sin(a) * sp / cam.s * 0.4, life: 1.2, col, sz: 3 / cam.s }); }
+  for (let i = 0; i < 28 && parts.length < MAXP; i++) { const a = i / 28 * 7, sp = 200 + Math.random() * 120; parts.push({ x, y, vx: Math.cos(a) * sp / cam.s * 0.4, vy: Math.sin(a) * sp / cam.s * 0.4, life: 1.2, col, sz: 3 / cam.s }); }
 }
 function updateParts(dt) { for (let i = parts.length - 1; i >= 0; i--) { const p = parts[i]; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 2; p.vy *= 1 - dt * 2; p.life -= dt; if (p.life <= 0) parts.splice(i, 1); } }
 

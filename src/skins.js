@@ -3,11 +3,11 @@ const SKINS = [
   // cost = stars needed (unlocks by itself as stars build up); coins = price paid once with earned coins
   { id: 'blue', name: 'Blue Glow', cost: 0, rim: ['#1f8fff', '#9fe0ff'] },
   { id: 'stone', name: 'Stone Well', cost: 10, img: 'k-stone', inner: 0.49, rim: ['#8a8676', '#c9c3ad'] },
-  { id: 'galaxy', name: 'Galaxy', cost: 25, rim: ['#6a3cff', '#e08bff'] },
+  { id: 'galaxy', name: 'Galaxy', cost: 25, img: 'k-galaxy', inner: 0.55, rim: ['#6a3cff', '#e08bff'] },
   { id: 'ice', name: 'Ice Crystal', cost: 40, img: 'k-ice', inner: 0.49, rim: ['#7fd8ff', '#ffffff'] },
   { id: 'tiger', name: 'Tiger Mouth', cost: 0, coins: 30, img: 'k-tiger', inner: 0.57, rim: ['#e8871e', '#ffc066'] },
   { id: 'gold', name: 'Molten Gold', cost: 0, coins: 60, img: 'k-gold', inner: 0.49, rim: ['#e8b923', '#fff1a8'] },
-  { id: 'neon', name: 'Neon', cost: 0, coins: 90, rim: ['#19ff9c', '#d0ffef'] },
+  { id: 'neon', name: 'Neon', cost: 0, coins: 90, img: 'k-neon', inner: 0.62, rim: ['#19ff9c', '#d0ffef'] },
 ];
 function drawHole(ctx, x, y, R, skinId, t) {
   const s = SKINS.find(k => k.id === skinId) || SKINS[0];
@@ -20,7 +20,7 @@ function drawHole(ctx, x, y, R, skinId, t) {
   const im = s.img && typeof SPR !== 'undefined' && SPR[s.img];
   if (im) { // painted ring: dark throat first, then the ring art with its hollow lined up on the hole edge
     const ig = ctx.createRadialGradient(x, y - R * 0.2, R * 0.1, x, y, R * 1.05);
-    ig.addColorStop(0, '#000'); ig.addColorStop(0.75, '#05070c'); ig.addColorStop(1, s.id === 'tiger' ? '#4a1a0a' : '#101826');
+    ig.addColorStop(0, '#000'); ig.addColorStop(0.75, '#05070c'); ig.addColorStop(1, s.id === 'tiger' ? '#4a1a0a' : s.id === 'galaxy' ? '#1a0f3a' : s.id === 'neon' ? '#0a2a24' : '#101826');
     ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(x, y, R * 1.08, 0, 7); ctx.fill();
     const w = 2 * R * 1.04 / s.inner, h = w * im.height / im.width;
     ctx.drawImage(im, x - w / 2, y - h / 2, w, h); ctx.restore(); return;
