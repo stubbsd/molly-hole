@@ -45,6 +45,9 @@ const Sfx = (() => {
   }
   return {
     init, scream, loser,
+    // pedestrians: soft twinkly chime as they turn into angels, then a gentle rising "wheee" as they float up
+    angel() { if (muted) return; [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, 0.4, 'sine', 0.07, null, i * 0.06)); },
+    rise() { if (muted) return; tone(660, 0.7, 'sine', 0.08, 1320); tone(1320, 0.5, 'triangle', 0.03, 2640, 0.1); },
     swallow(size, skin) {
       const n = performance.now(); if (n - lastSw < 70) return; lastSw = n; // dense parks: don't stack dozens of voices
       const base = 520 / (1 + size * 0.45);
