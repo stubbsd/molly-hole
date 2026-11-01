@@ -1,7 +1,7 @@
 // Hole skins: drawn procedurally. Unlocked with stars earned in play. No purchases.
 const SKINS = [
   // cost = stars needed (unlocks by itself as stars build up); coins = price paid once with earned coins
-  { id: 'blue', name: 'Blue Glow', cost: 0, rim: ['#1f8fff', '#9fe0ff'] },
+  { id: 'blue', name: 'Purple Pop', cost: 0, rim: ['#ffffff', '#e9e4f5'], inner: '#7a2fa8' },
   { id: 'stone', name: 'Stone Well', cost: 10, img: 'k-stone', inner: 0.49, rim: ['#8a8676', '#c9c3ad'] },
   { id: 'galaxy', name: 'Galaxy', cost: 25, img: 'k-galaxy', inner: 0.55, rim: ['#6a3cff', '#e08bff'] },
   { id: 'ice', name: 'Ice Crystal', cost: 40, img: 'k-ice', inner: 0.49, rim: ['#7fd8ff', '#ffffff'] },
@@ -21,10 +21,12 @@ function drawHole(ctx, x, y, R, skinId, t) { // simplified flat look: solid rim,
     const w = 2 * R * 1.04 / s.inner, h = w * im.height / im.width;
     ctx.drawImage(im, x - w / 2, y - h / 2, w, h); ctx.restore(); return;
   }
+  // ref-video look: chunky soft white rim with a glossy inner lip and a deep purple throat
+  ctx.fillStyle = 'rgba(40,60,10,.22)'; ctx.beginPath(); ctx.arc(x, y + rimW * 0.5, R + rimW * 1.6, 0, 7); ctx.fill();
   ctx.fillStyle = s.rim[0]; ctx.beginPath(); ctx.arc(x, y, R + rimW * 1.3, 0, 7); ctx.fill();
-  ctx.strokeStyle = '#1a1f2b'; ctx.lineWidth = Math.max(2, rimW * 0.3); ctx.stroke();
-  ctx.fillStyle = s.rim[1]; ctx.beginPath(); ctx.arc(x, y, R + rimW * 0.55, 0, 7); ctx.fill();
-  ctx.fillStyle = '#0d1220'; ctx.beginPath(); ctx.arc(x, y, R - rimW * 0.05, 0, 7); ctx.fill();
+  ctx.fillStyle = s.rim[1]; ctx.beginPath(); ctx.arc(x, y + rimW * 0.25, R + rimW * 0.5, 0, 7); ctx.fill();
+  const g = ctx.createRadialGradient(x, y + R * 0.3, R * 0.1, x, y, R); g.addColorStop(0, '#240833'); g.addColorStop(0.7, s.inner || '#1a1030'); g.addColorStop(1, '#3b0f55');
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R - rimW * 0.05, 0, 7); ctx.fill();
   ctx.restore();
 }
 

@@ -64,7 +64,7 @@ function wall(ctx, ax, ay, bx, by, z0, z1, st, shade, H) {
     ctx.restore();
   }
 }
-function poly(ctx, pts, fill) { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = "#1c2230"; ctx.lineWidth = 2.5; ctx.lineJoin = "round"; ctx.stroke(); } // v2 look: thick dark outline on block faces
+function poly(ctx, pts, fill) { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); } // ref-video look: soft shaded faces, no outlines
 // solid box (roof plant rooms etc.)
 function box(ctx, x0, y0, x1, y1, z0, z1, col) {
   const c = [P3(x0, y0, z1), P3(x1, y0, z1), P3(x1, y1, z1), P3(x0, y1, z1)];

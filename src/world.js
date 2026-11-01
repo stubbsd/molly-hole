@@ -205,18 +205,18 @@ function noiseCanvas(size, base, vary, fn) {
   x.putImageData(id, 0, 0); if (fn) fn(x, size); return c;
 }
 // plain flat cartoon ground (v2 look): bold solid colours, no painted texture
-const GROUND = {
-  city: { asph: [78, 82, 96], pave: [214, 214, 222], plaza: [232, 224, 206], grass: [108, 192, 78], kerb: '#9a9aa6' },
-  district: { asph: [78, 82, 96], pave: [226, 208, 186], plaza: [236, 214, 180], grass: [108, 192, 78], kerb: '#a8907a' },
-  village: { asph: [96, 96, 104], pave: [222, 200, 150], plaza: [118, 196, 82], grass: [108, 192, 78], kerb: '#5e9a44' },
-  desert: { asph: [222, 190, 128], pave: [244, 220, 160], plaza: [240, 212, 150], grass: [150, 196, 90], kerb: '#d0aa70' },
-  moon: { asph: [98, 102, 116], pave: [168, 170, 180], plaza: [186, 188, 198], grass: [150, 152, 162], kerb: '#7a7e8a' },
+const GROUND = { // ref-video palette: bright lime grass, warm cream sand, soft pastel road
+  city: { asph: [150, 156, 170], pave: [246, 232, 196], plaza: [250, 238, 206], grass: [184, 226, 58], kerb: '#e6d3a4' },
+  district: { asph: [150, 156, 170], pave: [246, 228, 190], plaza: [250, 236, 200], grass: [184, 226, 58], kerb: '#e2cc98' },
+  village: { asph: [214, 196, 150], pave: [246, 230, 186], plaza: [184, 226, 58], grass: [184, 226, 58], kerb: '#a6d43a' },
+  desert: { asph: [236, 210, 150], pave: [248, 230, 180], plaza: [246, 224, 170], grass: [184, 222, 80], kerb: '#e0c088' },
+  moon: { asph: [170, 172, 196], pave: [206, 206, 224], plaza: [216, 216, 232], grass: [190, 190, 214], kerb: '#a8a8c8' },
 };
 function flatPat(ctx, rgb) { const c = document.createElement('canvas'); c.width = c.height = 8; const x = c.getContext('2d'); x.fillStyle = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`; x.fillRect(0, 0, 8, 8); return ctx.createPattern(c, 'repeat'); }
 function makePatterns(ctx) {
   const G = GROUND[THEME];
   PAT = { asph: flatPat(ctx, G.asph), pave: flatPat(ctx, G.pave), plaza: flatPat(ctx, G.plaza), grass: flatPat(ctx, G.grass) };
-  const O = { village: [[108, 192, 78], [126, 204, 92], [242, 204, 92], [226, 200, 150]], desert: [[240, 210, 150], [246, 222, 170], [250, 232, 196], [232, 198, 140]], moon: [[150, 152, 162], [170, 172, 182], [120, 122, 134], [112, 116, 128]] }[THEME];
+  const O = { village: [[184, 226, 58], [198, 234, 84], [246, 214, 110], [244, 226, 180]], desert: [[240, 210, 150], [246, 222, 170], [250, 232, 196], [232, 198, 140]], moon: [[150, 152, 162], [170, 172, 182], [120, 122, 134], [112, 116, 128]] }[THEME];
   if (O) Object.assign(PAT, { obase: flatPat(ctx, O[0]), oclear: flatPat(ctx, O[1]), ofield: flatPat(ctx, O[2]), opath: flatPat(ctx, O[3]), stone: flatPat(ctx, THEME === 'village' ? [176, 172, 164] : O[3].map(v => v - 20)) });
 }
 

@@ -273,13 +273,13 @@ function update(dt) {
   if (!AUTOPLAY) { // steer: direction = finger offset from the press point, speed grows with the offset
     hole.tx = hole.x; hole.ty = hole.y;
     if (fingerDown) { const vx = lastPX - anchorX, vy = lastPY - anchorY, L = Math.hypot(vx, vy);
-      if (L > 6) { const sp = (170 + hole.R * 2.4) * Math.min(1, (L - 6) / (STICK - 6)), wy = vy / TILT, n = Math.hypot(vx, wy);
+      if (L > 6) { const sp = (240 + hole.R * 3) * Math.min(1, (L - 6) / (STICK * 0.6 - 6)), wy = vy / TILT, n = Math.hypot(vx, wy);
         hole.tx = clamp(hole.x + vx / n * sp * dt, 30, W.SIZE - 30); hole.ty = clamp(hole.y + wy / n * sp * dt, 30, W.SIZE - 30); } } }
   const dx = hole.tx - hole.x, dy = hole.ty - hole.y, d = Math.hypot(dx, dy), maxV = (AUTOPLAY ? 380 + hole.R * 3 : 1e5) * dt;
   // glued to the finger: closes ~95% of the gap in 0.15s; the cap only stops wild teleports on a jump-tap
   if (d > 0.01) { const k = Math.min(1, maxV / d); hole.x += dx * k; hole.y += dy * k; }
   const targetR = HOLE_R[hole.level];
-  hole.R += (targetR - hole.R) * Math.min(1, dt * 4); hole.pulse = Math.max(0, hole.pulse - dt * 2); hole.gulp = Math.max(0, (hole.gulp || 0) - dt * 3);
+  hole.R += (targetR - hole.R) * Math.min(1, dt * 9); hole.pulse = Math.max(0, hole.pulse - dt * 2); hole.gulp = Math.max(0, (hole.gulp || 0) - dt * 3);
 
   // swallow / teeter
   for (let ai = 0, an = objs.length + vehicles.length; ai < an; ai++) { const o = ai < objs.length ? objs[ai] : vehicles[ai - objs.length]; if (!o) continue;
@@ -309,7 +309,7 @@ function update(dt) {
     const q = respawnQ[i]; if (time < q.at) continue;
     if (Math.hypot(q.o.x - hole.x, q.o.y - hole.y) > hole.R + q.o.r + 250) { q.o.state = 'idle'; q.o.ft = 0; q.o.pop = 1; objs.push(q.o); respawnQ.splice(i, 1); }
   }
-  updateParts(dt);
+  updateParts(dt); for (let i = pops.length - 1; i >= 0; i--) if ((pops[i].t += dt) > 0.9) pops.splice(i, 1);
   if (mode === 'timed' && !ringDone && !ending) {
     ringT += dt; $('ring').style.setProperty('--p', Math.min(100, ringT / RING_T * 100).toFixed(1) + '%');
     if (ringT >= RING_T) { ringDone = true; paused = true; fingerDown = false; activeId = null; hideStick(); show('timeup'); } // nothing fails: Continue or Exit
@@ -318,9 +318,9 @@ function update(dt) {
   if (ending) { if (ending > 3) clearSnap(); ending -= dt; if (Math.random() < dt * 6) firework(); if (ending <= 0) { ending = 0; playing = false; $('endStars').textContent = '+' + runStars; $('endCoins').textContent = '+' + runCoins; $('endCoinsPill').classList.toggle('hidden', !runCoins); show('end'); } }
 
   // camera follows hole, zooms out as it grows
-  const mn = Math.min(Wd, Ht), base = mn / 380, want = Math.min(base, mn * 0.25 / (2 * hole.R)); // hole diameter <= 1/4 of the short side
-  cam.s += (want - cam.s) * Math.min(1, dt * 1.5);
-  cam.x += (hole.x - cam.x) * Math.min(1, dt * 8); cam.y += (hole.y - cam.y) * Math.min(1, dt * 8);
+  const mn = Math.min(Wd, Ht), base = mn / 330, want = Math.min(base, mn * 0.25 / (2 * hole.R)); // hole diameter <= 1/4 of the short side
+  cam.s += (want - cam.s) * Math.min(1, dt * 4);
+  cam.x += (hole.x - cam.x) * Math.min(1, dt * 14); cam.y += (hole.y - cam.y) * Math.min(1, dt * 14);
   { // keep the view inside the map so the void beyond the world edge never shows when zoomed out
     const hw = Wd * 0.6 / cam.s, hhT = Ht * 0.75 / (cam.s * TILT), hhB = Ht * 0.55 / (cam.s * TILT), S = W.SIZE;
     cam.x = 2 * hw >= S ? S / 2 : Math.max(hw, Math.min(S - hw, cam.x));
@@ -346,7 +346,7 @@ function startFall(o) {
   if (o.critter) Sfx.scream(!o.ped); else Sfx.swallow(o.size, save.skin);
   if (parts.length < MAXP - 20) { const sk = SKINS.find(s => s.id === save.skin); for (let i = 0; i < 6 + o.size; i++) { const a = i / (6 + o.size) * 6.283; parts.push({ x: o.x, y: o.y, vx: Math.cos(a) * (120 + o.size * 25), vy: Math.sin(a) * (120 + o.size * 25), life: 0.5, col: i % 2 ? sk.rim[0] : '#ffffff', sz: 2 + o.size * 0.6 }); } }
 }
-let swallowed = 0, scored = 0;
+let swallowed = 0, scored = 0; const pops = [];
 function finishFall(o) {
   swallowed++;
   if (o.critter) { critterQ.push({ f: o, at: time + 15 }); hole.pts += 1; scored++; hole.gulp = 0.5; checkLevel(); updateHud(); return; }
@@ -366,6 +366,7 @@ function finishFall(o) {
     return;
   }
   if (hole.level < 8) {
+    pops.push({ x: hole.x, y: hole.y, t: 0, txt: '+' + (o.size * o.size + 1) }); if (pops.length > 8) pops.shift();
     hole.pts += o.size * o.size + 1; scored++; hole.gulp = Math.min(1, 0.4 + o.size * 0.08); // +1 so small early snacks always visibly fill the bar
     checkLevel();
   }
@@ -375,7 +376,7 @@ function checkLevel() {
   if (hole.level < 8 && mode !== 'order') {
     if (hole.pts >= LEVEL_NEED[hole.level]) {
       hole.pts -= LEVEL_NEED[hole.level]; hole.level++; hole.pulse = 1; Sfx.grow(); addStars(1);
-      for (let i = 0; i < 40 && parts.length < MAXP; i++) { const a = Math.random() * 7; parts.push({ x: hole.x, y: hole.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, life: 1, col: ['#ffd84a', '#6fe0ff', '#ff7ab8', '#7dff9a'][i % 4], sz: 4 }); }
+      for (let i = 0; i < 40 && parts.length < MAXP; i++) { const a = Math.random() * 7; parts.push({ x: hole.x, y: hole.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, life: 1, col: '#ffffff', sz: 4 }); }
       if (hole.level >= 8) hole.pts = 0;
     }
   }
@@ -461,12 +462,12 @@ function render() {
       // gravity: a little hop on the lip, slide to the centre, then accelerate down (d = ½gt²) with squash & stretch
       const t = o.ft, slide = Math.min(1, t / 0.35), sl = slide * slide * (3 - 2 * slide);
       const bx = o.sx + (hole.x - o.sx) * sl, by0 = (o.sy + (hole.y - o.sy) * sl) * TILT;
-      const hop = t < 0.25 ? Math.sin(t / 0.25 * Math.PI) * (6 + o.size * 2) : 0;
+      const hop = 0; // no hop: objects tip off the lip and drop
       const ft = Math.max(0, t - 0.2) / 0.8, drop = ft * ft * pr * 2.4;
-      const sq = t < 0.25 ? 1 + 0.22 * Math.sin(t / 0.25 * Math.PI * 2) : 1 + ft * 0.35; // squash on the lip, stretch while falling
-      ctx.save(); ctx.globalAlpha = 1 - ft * 0.6;
+      const sq = 1; // ref video: rigid toys drop straight into the void, no squash/stretch // squash on the lip, stretch while falling
+      ctx.save(); ctx.globalAlpha = 1;
       if (is3D(o)) { drawBuilding3D(ctx, o, ft * ft * bDims(o).h * 1.1, (hole.x - o.sx) * sl, (hole.y - o.sy) * sl); ctx.restore(); continue; }
-      ctx.translate(bx, by0 - hop + drop); ctx.rotate(ft * o.spin); const sc = 1 - ft * 0.45; ctx.scale(sc / Math.sqrt(sq), sc * sq);
+      ctx.translate(bx, by0 - hop + drop); ctx.rotate(ft * o.spin); const sc = 1; ctx.scale(sc / Math.sqrt(sq), sc * sq);
       if (o.type === 'coin' || o.type === 'gift') drawPickup(ctx, o, time); else if (o.critter) { if (o.ped) drawPed(ctx, o.critter, time); else drawBird(ctx, o.critter, time); }
       else if (o.moving) drawVehicleUp(ctx, o); else { const sb = spriteBox(o); if (sb) ctx.drawImage(sb.img, -sb.w / 2, -sb.h, sb.w, sb.h); }
       ctx.restore();
@@ -511,6 +512,17 @@ function render() {
   G();
   for (const p of parts) { ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 1.5)); ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.x, p.y, p.sz, 0, 7); ctx.fill(); }
   ctx.globalAlpha = 1;
+  if (playing || ending) { // ref-video HUD-in-world: "Size N" label above the hole, growth bar below, "+N" pops
+    U(); const fs = Math.max(16, hole.R * 0.42), hx = hole.x, hyy = hole.y * TILT;
+    ctx.font = `900 ${fs}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
+    const lab = (txt, x, y, col) => { ctx.lineWidth = fs * 0.22; ctx.strokeStyle = '#5a2a86'; ctx.strokeText(txt, x, y); ctx.fillStyle = col; ctx.fillText(txt, x, y); };
+    lab('Size ' + (hole.level + 1), hx, hyy - hole.R * TILT - hole.R * 0.45, '#ffe46b');
+    for (const p of pops) { ctx.globalAlpha = 1 - p.t / 0.9; lab(p.txt, p.x + hole.R * 0.5, p.y * TILT - hole.R * TILT - hole.R * 0.45 - fs - p.t * 60, '#ffffff'); }
+    ctx.globalAlpha = 1;
+    const bw = hole.R * 1.4, bh = Math.max(7, fs * 0.38), by = hyy + hole.R * TILT + hole.R * 0.35, fr = hole.level >= 8 ? 1 : Math.min(1, hole.pts / LEVEL_NEED[hole.level]);
+    ctx.fillStyle = 'rgba(60,30,90,.75)'; ctx.beginPath(); ctx.roundRect(hx - bw / 2, by, bw, bh, bh / 2); ctx.fill();
+    ctx.fillStyle = '#ffd23a'; ctx.beginPath(); ctx.roundRect(hx - bw / 2 + 2, by + 2, Math.max(bh - 4, (bw - 4) * fr), bh - 4, (bh - 4) / 2); ctx.fill();
+  }
   // perspective warp onto the screen
   const W2 = cv.width, H2 = cv.height, cy = H2 * 0.5, ocx = ow / 2, ocy = oh * OCY, k = PK / H2, step = 6;
   proj = { ow, oh, s, ox, oy, W2, H2, k };

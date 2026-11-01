@@ -16,8 +16,8 @@ svg{width:55%;height:55%;fill:#fff;stroke:#fff}
 .star{color:#ffcf3a;text-shadow:0 0 10px rgba(255,200,40,.6)}
 #growWrap{position:absolute;top:calc(env(safe-area-inset-top) + 30px);left:50%;transform:translateX(-50%);display:flex;align-items:center;width:min(40vw,420px)}
 #growHole{width:58px;height:58px;border-radius:50%;background:radial-gradient(#000 55%,#1f8fff 62%,#7fd0ff 70%,transparent 72%);flex:none;margin-right:-14px;z-index:1}
-#growBar{flex:1;height:22px;border-radius:12px;background:rgba(20,26,38,.72);overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.35)}
-#growFill{height:100%;width:0;background:linear-gradient(90deg,#2a8cff,#6fe0ff);border-radius:12px;transition:width .25s}
+#growBar{flex:1;height:24px;border-radius:12px;background:#3b2a8f;border:3px solid #5f6dff;overflow:hidden;box-shadow:0 3px 0 #22185e}
+#growFill{height:100%;width:0;background:linear-gradient(90deg,#7ee04a,#c6f26a);border-radius:10px;transition:width .25s}
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5vh;background:linear-gradient(160deg,rgba(12,18,30,.55),rgba(12,18,30,.85));padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 .screen.dim{background:rgba(10,14,22,.6)}
 .screen.clear{background:rgba(10,14,22,.25)}
