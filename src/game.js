@@ -503,14 +503,22 @@ function screenToWorld(px, py) {
 }
 
 let last = performance.now(), perfN = 0, perfT = 0, perfLast = performance.now();
+let costT = 0, costN = 0, errN = 0;
 function frame(now) {
+  requestAnimationFrame(frame);
+  // 120Hz screens (ProMotion iPads/iPhones): cap at ~60fps so the battery and heat stay sensible
+  if (now - last < 14) return;
   // slow devices: cover up to 0.2s per frame in <=1/30s substeps, so the game keeps real-time pace
   let dt = Math.min(0.2, (now - last) / 1000); last = now;
-  if (!paused) while (dt > 1e-4) { const st = Math.min(1 / 30, dt); update(st); dt -= st; }
-  render(); requestAnimationFrame(frame);
+  const t0 = performance.now();
+  try { // one bad frame must never freeze the game
+    if (!paused) while (dt > 1e-4) { const st = Math.min(1 / 30, dt); update(st); dt -= st; }
+    render();
+  } catch (e) { errN++; window.__mollyErr = String(e && e.stack || e); if (errN < 4) console.error(e); }
+  costT += performance.now() - t0; costN++;
   // adaptive quality: if frames are slow for ~1.5s, render at a lower internal resolution
   perfN++; perfT += now - perfLast; perfLast = now;
-  if (perfT > 1500) { const fps = perfN * 1000 / perfT; perfN = 0; perfT = 0; window.__mollyFps = fps;
+  if (perfT > 1500) { const fps = perfN * 1000 / perfT; perfN = 0; perfT = 0; window.__mollyFps = fps; window.__mollyCost = costT / Math.max(1, costN); costT = costN = 0;
     if (fps < 50 && resScale > 0.6) { resScale = Math.max(0.6, resScale - 0.2); resize(); } }
 }
 newWorld(); refreshStars(); hide('home'); show('map'); buildMap(); // always open on the levels map
