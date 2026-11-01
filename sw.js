@@ -1,5 +1,5 @@
 // Offline cache for Molly Hole. No network calls beyond its own files.
-const CACHE = 'molly-hole-progress1';
+const CACHE = 'molly-hole-noprogress1';
 const FILES = [
   "./",
   "./assets/sfx-loser.mp3",

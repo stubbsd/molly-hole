@@ -39,7 +39,7 @@ let lastMode = null, curWorld = 'city', lastWorld = 'city';
 function startGame(m, world, seed) {
   curWorld = world || 'city'; lastMode = m; lastWorld = curWorld;
   Sfx.init(); Sfx.startMusic(); newWorld(seed);
-  mode = m; playing = true; paused = false; ending = 0; runStars = 0; runCoins = 0; orderIdx = 0; ringT = 0; ringDone = false; ringP = -1; swShown = -1;
+  mode = m; playing = true; paused = false; ending = 0; runStars = 0; runCoins = 0; orderIdx = 0; ringT = 0; ringDone = false; ringP = -1;
   // start on a road near a corner of the central area
   const p = W.PITCH * 2 + W.ROAD / 2, lv = m === 'order' ? orderLv(0) : m === 'bonus' ? 2 : 1, sx = city.start ? city.start.x : p, sy = city.start ? city.start.y : p;
   Object.assign(hole, { x: sx, y: sy, tx: sx, ty: sy, R: HOLE_R[lv], level: lv, pts: 0, pulse: 0 });
@@ -249,17 +249,7 @@ function buildWardrobe() {
   refreshStars();
 }
 function refreshStars() { $('coinCount').textContent = runCoins; $('starCountMap').textContent = save.stars; $('coinCountMap').textContent = save.coins; $('starCount').textContent = save.stars; $('starCountHome').textContent = save.stars; $('starCountWard').textContent = save.stars; if ($('coinCountWard')) $('coinCountWard').textContent = save.coins; }
-const GOAL_PTS = LEVEL_NEED.slice(1, 8).reduce((a, b) => a + b, 0); let swShown = -1;
-// swallow progress (%): order levels = items done / items; other levels = all points swallowed toward Size 8 (the size that can
-// eat the landmark), held at 99% until the landmark goes in, which is what completes the level -> exactly 100% at level complete
-function swallowPct() {
-  if (mode === 'order') return Math.round(orderIdx / ORDER.length * 100);
-  if (ending) return 100;
-  let got = hole.pts; for (let l = 1; l < hole.level && l < 8; l++) got += LEVEL_NEED[l];
-  return Math.min(99, Math.floor(got / GOAL_PTS * 100));
-}
 function updateHud() {
-  { const p = swallowPct(); if (p !== swShown) { swShown = p; $('swFill').style.width = p + '%'; $('swPct').textContent = p + '%'; } } // DOM only on change
   const need = LEVEL_NEED[hole.level];
   $('growFill').style.width = (hole.level >= 8 ? 100 : Math.min(100, hole.pts / need * 100)) + '%';
   const gh = $('growHole').style; const sz = 40 + hole.level * 5; gh.width = gh.height = sz + 'px';
@@ -376,7 +366,7 @@ function finishFall(o) {
     updateHud(); return;
   }
   if (o.landmark && (mode === 'run' || mode === 'timed')) {
-    addStars(5); Sfx.win(); ending = 3.2; updateHud();
+    addStars(5); Sfx.win(); ending = 3.2;
     if (mode === 'timed' && !ringDone) addCoins(25); // beat the ring: bonus coins
     if (curStop) markDone(curStop, mode === 'timed' && !ringDone ? 3 : 2);
     return;
