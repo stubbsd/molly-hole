@@ -9,14 +9,17 @@ addEventListener('resize', resize); resize();
 
 // ---------- save (this device only) ----------
 const SAVE_KEY = 'mollyHole.v1';
-let save = { stars: 0, skin: 'blue', muted: false };
+let save = { stars: 0, coins: 0, skin: 'blue', muted: false, done: {} };
 try { Object.assign(save, JSON.parse(localStorage.getItem(SAVE_KEY) || '{}')); } catch (e) {}
 const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
 Sfx.setMuted(save.muted);
 
 // ---------- state ----------
 let city, objs, vehicles, peds, birds, falling, parts, respawnQ, critterQ = [];
-let mode = null, playing = false, paused = false, ending = 0, runStars = 0, time = 0;
+let mode = null, playing = false, paused = false, ending = 0, runStars = 0, runCoins = 0, time = 0;
+let orderIdx = 0, ringT = 0, ringDone = false, curStop = null;
+const ORDER = ['bin', 'bench', 'tree', 'car', 'bus'];
+const RING_T = 180; // seconds for the soft timer ring (never shown as numbers)
 const hole = { x: 0, y: 0, tx: 0, ty: 0, R: 14, level: 1, pts: 0, pulse: 0 };
 const cam = { x: 0, y: 0, s: 1 };
 
@@ -26,18 +29,111 @@ function newWorld() {
   vehicles = []; for (let i = 0; i < 34; i++) vehicles.push(spawnVehicle(city, true));
   falling = []; parts = []; respawnQ = [];
 }
+let lastMode = null;
 function startGame(m) {
+  lastMode = m;
   Sfx.init(); Sfx.startMusic(); newWorld();
-  mode = m; playing = true; paused = false; ending = 0; runStars = 0;
+  mode = m; playing = true; paused = false; ending = 0; runStars = 0; runCoins = 0; orderIdx = 0; ringT = 0; ringDone = false;
   // start on a road near a corner of the central area
-  const p = W.PITCH * 2 + W.ROAD / 2;
-  Object.assign(hole, { x: p, y: p, tx: p, ty: p, R: HOLE_R[1], level: 1, pts: 0, pulse: 0 });
+  const p = W.PITCH * 2 + W.ROAD / 2, lv = m === 'order' ? 5 : m === 'bonus' ? 2 : 1;
+  Object.assign(hole, { x: p, y: p, tx: p, ty: p, R: HOLE_R[lv], level: lv, pts: 0, pulse: 0 });
   cam.x = p; cam.y = p;
-  show('hud'); hide('home'); hide('ward'); hide('pause'); hide('end'); updateHud();
+  if (m === 'bonus') spawnPickups(p);
+  $('growWrap').classList.toggle('hidden', m === 'order');
+  $('orderStrip').classList.toggle('hidden', m !== 'order'); if (m === 'order') buildStrip();
+  $('ring').classList.toggle('hidden', m !== 'timed'); $('ring').style.setProperty('--p', '0%');
+  $('coinPill').classList.toggle('hidden', !(m === 'bonus' || m === 'timed'));
+  show('hud'); hide('home'); hide('ward'); hide('pause'); hide('end'); hide('map'); hide('timeup'); updateHud();
 }
 function goHome() { fingerDown = false; activeId = null; hideStick();
-  playing = false; paused = false; mode = null; hide('hud'); hide('pause'); hide('end'); hide('ward'); show('home'); refreshStars();
+  playing = false; paused = false; mode = null; hide('hud'); hide('pause'); hide('end'); hide('ward'); hide('map'); hide('timeup'); show('home'); refreshStars();
 }
+// leaving a level always goes back to the start map; bonus levels count as done just for visiting
+function goMap() {
+  if (curStop && (mode === 'bonus' || mode === 'free')) markDone(curStop, 1);
+  fingerDown = false; activeId = null; hideStick(); playing = false; paused = false; mode = null; ending = 0;
+  hide('hud'); hide('pause'); hide('end'); hide('ward'); hide('home'); hide('timeup'); show('map'); buildMap();
+}
+function markDone(id, st) { save.done[id] = Math.max(save.done[id] || 0, st); persist(); }
+
+// ---------- start map ----------
+const STOPS = [
+  { id: 'run', icon: '🏙️', mode: 'run' },
+  { id: 'order1', icon: '🧩', mode: 'order' },
+  { id: 'gift1', icon: '🎁', mode: 'bonus', gift: true },
+  { id: 'timed1', icon: '⏱️', mode: 'timed' },
+  { id: 'free', icon: '♾️', mode: 'free' },
+  { id: 'gift2', icon: '🎁', mode: 'bonus', gift: true },
+  { id: 'thorn', icon: '🏡', soon: true, world: '🌳' },
+  { id: 'district', icon: '🌉', soon: true },
+  { id: 'desert', icon: '🦕', soon: true, world: '🏝️' },
+  { id: 'moon', icon: '🌙', soon: true, world: '🚀' },
+];
+const stopOpen = i => !STOPS[i].soon && (i === 0 || !!save.done[STOPS[i - 1].id] || !!save.done[STOPS[i].id]);
+function stopPos(i, w) { const amp = Math.min(w * 0.28, 220); return { x: w / 2 + Math.sin(i * 1.15) * amp, y: 170 + i * 165 }; }
+function buildMap() {
+  const inner = $('mapInner'), w = inner.clientWidth || innerWidth; inner.querySelectorAll('.stop,.world').forEach(e => e.remove());
+  inner.style.height = (stopPos(STOPS.length - 1, w).y + 200) + 'px';
+  let d = ''; for (let i = 0; i < STOPS.length; i++) { const p = stopPos(i, w); d += (i ? ' L' : 'M') + p.x + ' ' + p.y; }
+  $('mapPath').innerHTML = `<path d="${d}" stroke="rgba(255,255,255,.85)" stroke-width="14" stroke-dasharray="2 26" stroke-linecap="round"/>`;
+  let next = -1;
+  STOPS.forEach((st, i) => {
+    const p = stopPos(i, w), open = stopOpen(i), b = document.createElement('button');
+    if (open && !save.done[st.id] && next < 0) next = i;
+    b.className = 'stop' + (st.gift ? ' gift' : '') + (open ? '' : ' locked') + (i === next ? ' next' : '');
+    b.style.left = p.x + 'px'; b.style.top = p.y + 'px';
+    b.innerHTML = st.icon + (open ? '' : '<span class="lk">🔒</span>') + (save.done[st.id] ? `<span class="st">${'★'.repeat(Math.min(3, save.done[st.id]))}</span>` : '');
+    b.addEventListener('pointerup', e => { e.stopPropagation(); Sfx.init(); if (!open) { Sfx.teeter(); b.animate([{ transform: 'rotate(-8deg)' }, { transform: 'rotate(8deg)' }, { transform: 'rotate(0)' }], 300); return; } pickStop(i); });
+    inner.appendChild(b);
+    if (st.world) { const wl = document.createElement('div'); wl.className = 'world'; wl.textContent = st.world; wl.style.top = (p.y - 105) + 'px'; wl.style.left = (w - p.x) + 'px'; inner.appendChild(wl); }
+  });
+  const at = Math.max(0, STOPS.findIndex(st => st.id === curStop)), tp = stopPos(at < 0 ? 0 : at, w);
+  const tok = $('mapToken'); tok.style.transition = 'none'; tok.style.left = tp.x + 'px'; tok.style.top = tp.y + 'px';
+  $('starCountMap').textContent = save.stars; $('coinCountMap').textContent = save.coins;
+  if (next >= 0) setTimeout(() => $('mapScroll').scrollTo({ top: Math.max(0, stopPos(next, w).y - innerHeight / 2), behavior: 'smooth' }), 50);
+}
+let picking = false;
+function pickStop(i) {
+  if (picking) return; picking = true; Sfx.tap();
+  const p = stopPos(i, $('mapInner').clientWidth || innerWidth), tok = $('mapToken');
+  tok.style.transition = ''; tok.style.left = p.x + 'px'; tok.style.top = p.y + 'px';
+  curStop = STOPS[i].id;
+  setTimeout(() => { picking = false; startGame(STOPS[i].mode); }, 800);
+}
+
+// ---------- level helpers ----------
+function buildStrip() {
+  $('orderStrip').innerHTML = ORDER.map((t, i) => `<div class="it ${i < orderIdx ? 'done' : i === orderIdx ? 'now' : ''}"><img src="assets/sprites/${t}.png" alt=""><b>${i < orderIdx ? '✓' : i + 1}</b></div>`).join('');
+}
+const orderMatch = o => o.type === ORDER[orderIdx] || (ORDER[orderIdx] === 'car' && o.type === 'taxi');
+function spawnPickups(p) {
+  // a golden trail of coins along the nearby roads, with gift boxes at the junctions
+  for (let gx = -2; gx <= 2; gx++) for (let gy = -2; gy <= 2; gy++) {
+    const jx = p + gx * W.PITCH, jy = p + gy * W.PITCH; if (jx < 60 || jy < 60 || jx > W.SIZE - 60 || jy > W.SIZE - 60) continue;
+    objs.push({ type: 'gift', x: jx, y: jy, size: 2, r: 14, state: 'idle', ft: 0, wob: 0, hue: (gx * 7 + gy * 3 + 20) % 4 });
+    for (let k = 1; k < W.PITCH / 42; k++) {
+      if (jx + k * 42 < W.SIZE - 60) objs.push({ type: 'coin', x: jx + k * 42, y: jy, size: 1, r: 7, state: 'idle', ft: 0, wob: 0 });
+      if (jy + k * 42 < W.SIZE - 60) objs.push({ type: 'coin', x: jx, y: jy + k * 42, size: 1, r: 7, state: 'idle', ft: 0, wob: 0 });
+    }
+  }
+}
+function addCoins(n) { save.coins += n; runCoins += n; persist(); $('coinCount').textContent = runCoins; Sfx.star(); }
+const GIFTC = ['#ff5a7a', '#5ab4ff', '#7ddf64', '#c27dff'];
+function drawPickup(ctx, o, t) { // upright space
+  if (o.type === 'coin') {
+    const sq = Math.abs(Math.cos(t * 3 + o.x * 0.05));
+    ctx.fillStyle = 'rgba(10,15,30,.25)'; ctx.beginPath(); ctx.ellipse(0, 1, 7, 2.5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#c98a10'; ctx.beginPath(); ctx.ellipse(0, -12, 8 * sq + 1, 8, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#ffd23a'; ctx.beginPath(); ctx.ellipse(0, -12, 6.5 * sq + 0.5, 6.5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(-1.5 * sq, -16, 2 * sq, 5);
+  } else {
+    const c = GIFTC[o.hue | 0];
+    ctx.fillStyle = 'rgba(10,15,30,.3)'; ctx.beginPath(); ctx.ellipse(3, 2, 15, 5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = shadeHex(c, 0.75); ctx.fillRect(-12, -22, 24, 22); ctx.fillStyle = c; ctx.fillRect(-12, -28, 24, 8);
+    ctx.fillStyle = '#ffe36a'; ctx.fillRect(-2.5, -28, 5, 28); ctx.beginPath(); ctx.ellipse(-5, -31, 5, 3, -0.5, 0, 7); ctx.ellipse(5, -31, 5, 3, 0.5, 0, 7); ctx.fill();
+  }
+}
+function shadeHex(hex, f) { const n = parseInt(hex.slice(1), 16); return `rgb(${(n >> 16) * f | 0},${((n >> 8) & 255) * f | 0},${(n & 255) * f | 0})`; }
 const show = id => $(id).classList.remove('hidden'), hide = id => $(id).classList.add('hidden');
 
 // ---------- input: one finger, relative drag, mash-safe ----------
@@ -72,13 +168,16 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 function btn(id, fn) { let last = 0; $(id).addEventListener('pointerup', e => { e.stopPropagation(); const n = performance.now(); if (n - last < 350) return; last = n; Sfx.init(); Sfx.tap(); fn(); }); }
 function doPause() { if (!playing || ending) return; paused = true; activeId = null; fingerDown = false; hideStick(); show('pause'); }
 btn('btnPause', doPause);
-btn('btnHome', goHome);
+btn('btnHome', goMap);
 btn('btnResume', () => { paused = false; hide('pause'); });
-btn('btnPauseHome', goHome);
-btn('btnRun', () => startGame('run'));
+btn('btnPauseHome', goMap);
+btn('btnRun', () => { hide('home'); show('map'); buildMap(); });
+btn('btnMapBack', goHome);
+btn('btnCont', () => { paused = false; hide('timeup'); });
+btn('btnExit', goMap);
 btn('btnFree', () => startGame('free'));
-btn('btnAgain', () => startGame('run'));
-btn('btnEndHome', goHome);
+btn('btnAgain', () => startGame(lastMode || 'run'));
+btn('btnEndHome', goMap);
 btn('btnWard', () => { hide('home'); show('ward'); buildWardrobe(); });
 btn('btnWardBack', () => { hide('ward'); show('home'); });
 btn('btnMute', () => { save.muted = !save.muted; Sfx.setMuted(save.muted); persist(); drawMuteIcon(); });
@@ -91,21 +190,21 @@ drawMuteIcon();
 function buildWardrobe() {
   const box = $('skins'); box.innerHTML = '';
   for (const s of SKINS) {
-    const unlocked = save.stars >= s.cost;
+    const unlocked = save.stars >= s.cost && save.coins >= (s.coins || 0);
     const card = document.createElement('button');
     card.className = 'skin' + (save.skin === s.id ? ' on' : '') + (unlocked ? '' : ' locked');
     const c = document.createElement('canvas'); c.width = c.height = 200; const cx = c.getContext('2d');
     cx.fillStyle = '#3a3f47'; cx.fillRect(0, 0, 200, 200); drawHole(cx, 100, 100, 58, s.id, 0);
     card.appendChild(c);
     const cost = document.createElement('div'); cost.className = 'cost';
-    cost.innerHTML = unlocked ? (save.skin === s.id ? '<span class="star">✔</span>' : '') : '<span>🔒</span><span class="star">★</span>' + s.cost;
+    cost.innerHTML = unlocked ? (save.skin === s.id ? '<span class="star">✔</span>' : '') : '<span>🔒</span>' + (s.coins ? '<span class="coin"></span>' + s.coins : '<span class="star">★</span>' + s.cost);
     card.appendChild(cost);
     card.addEventListener('pointerup', () => { if (!unlocked) { Sfx.teeter(); return; } save.skin = s.id; persist(); Sfx.star(); buildWardrobe(); });
     box.appendChild(card);
   }
   refreshStars();
 }
-function refreshStars() { $('starCount').textContent = save.stars; $('starCountHome').textContent = save.stars; $('starCountWard').textContent = save.stars; }
+function refreshStars() { $('coinCount').textContent = runCoins; $('starCountMap').textContent = save.stars; $('coinCountMap').textContent = save.coins; $('starCount').textContent = save.stars; $('starCountHome').textContent = save.stars; $('starCountWard').textContent = save.stars; }
 function updateHud() {
   const need = LEVEL_NEED[hole.level];
   $('growFill').style.width = (hole.level >= 8 ? 100 : Math.min(100, hole.pts / need * 100)) + '%';
@@ -147,12 +246,18 @@ function update(dt) {
     if (o.state !== 'idle') continue;
     const dd = Math.hypot(o.x - hole.x, o.y - hole.y);
     if (dd > hole.R + o.r + 10) { o.wob = Math.max(0, o.wob - dt); continue; }
-    if (o.size <= hole.level && dd + o.r * 0.5 < hole.R) { if (falling.length < 8) startFall(o); }
+    if (o.size <= hole.level && dd + o.r * 0.5 < hole.R) {
+      if (mode === 'order' && !orderMatch(o)) { // wrong thing: gently pops back out, no penalty
+        if (!o.moving) { const ux = dd > 1 ? (o.x - hole.x) / dd : 1, uy = dd > 1 ? (o.y - hole.y) / dd : 0; o.x = hole.x + ux * (hole.R + o.r + 6); o.y = hole.y + uy * (hole.R + o.r + 6); }
+        o.wob = 0.6; Sfx.teeter();
+      } else if (falling.length < 8) startFall(o);
+    }
     else if (o.size > hole.level && dd < hole.R + o.r * 0.6) { o.wob = 0.6; Sfx.teeter(); }
   }
   // people and pets can be swallowed too (they pop back out somewhere else later)
   for (const arr of [peds, birds]) for (let i = arr.length - 1; i >= 0; i--) {
     const c = arr[i]; if (falling.length >= 8) break;
+    if (mode === 'order') { pushOut(c, hole.R + 10); continue; }
     if (Math.hypot(c.x - hole.x, c.y - hole.y) < hole.R * 0.85) { arr.splice(i, 1); startFall({ critter: c, arr, ped: arr === peds, x: c.x, y: c.y, size: 1, r: 6 }); }
   }
   for (let i = critterQ.length - 1; i >= 0; i--) { const q = critterQ[i]; if (time > q.at) { const c = q.f.critter; c.ox = c.oy = 0; c.run = 0; c.fly = 0; if (!q.f.ped) { c.x = c.hx; c.y = c.hy; } q.f.arr.push(c); critterQ.splice(i, 1); } }
@@ -165,7 +270,11 @@ function update(dt) {
     if (Math.hypot(q.o.x - hole.x, q.o.y - hole.y) > hole.R + q.o.r + 250) { q.o.state = 'idle'; q.o.ft = 0; q.o.pop = 1; objs.push(q.o); respawnQ.splice(i, 1); }
   }
   updateParts(dt);
-  if (ending) { ending -= dt; if (Math.random() < dt * 6) firework(); if (ending <= 0) { ending = 0; playing = false; $('endStars').textContent = '+' + runStars; show('end'); } }
+  if (mode === 'timed' && !ringDone && !ending) {
+    ringT += dt; $('ring').style.setProperty('--p', Math.min(100, ringT / RING_T * 100).toFixed(1) + '%');
+    if (ringT >= RING_T) { ringDone = true; paused = true; fingerDown = false; activeId = null; hideStick(); show('timeup'); } // nothing fails: Continue or Exit
+  }
+  if (ending) { ending -= dt; if (Math.random() < dt * 6) firework(); if (ending <= 0) { ending = 0; playing = false; $('endStars').textContent = '+' + runStars; $('endCoins').textContent = '+' + runCoins; $('endCoinsPill').classList.toggle('hidden', !runCoins); show('end'); } }
 
   // camera follows hole, zooms out as it grows
   const want = Math.min(Wd, Ht) / Math.max(380, hole.R * 7);
@@ -184,7 +293,7 @@ function autoSteer() {
   }
   if (best) { hole.tx = clamp(best.x, 30, W.SIZE - 30); hole.ty = clamp(best.y, 30, W.SIZE - 30); }
 }
-window.__molly = { hole, get mode() { return mode; }, get playing() { return playing; }, start: m => startGame(m), get time() { return time; }, get camS() { return cam.s; }, get swallowed() { return swallowed; }, get scored() { return scored; }, get pts() { return hole.pts; }, get level() { return hole.level; }, targets: () => objs.concat(vehicles).filter(o => o.state === 'idle').map(o => ({ x: o.x, y: o.y, size: o.size, lm: !!o.landmark })), toScreen: (x, y) => { const p = P3(x, y, 0), W2 = cv.width, H2 = cv.height, k = PJ.k, zr = p[1] - PJ.ocy, f = 1 / (1 - zr * k); return [(W2 / 2 + (p[0] - PJ.ocx) * f) / dpr, (H2 / 2 + zr * f) / dpr]; } };
+window.__molly = { get orderIdx() { return orderIdx; }, get ring() { return ringT; }, goMap: () => goMap(), get coins() { return save.coins; }, hole, get mode() { return mode; }, get playing() { return playing; }, start: m => startGame(m), get time() { return time; }, get camS() { return cam.s; }, get swallowed() { return swallowed; }, get scored() { return scored; }, get pts() { return hole.pts; }, get level() { return hole.level; }, targets: () => objs.concat(vehicles).filter(o => o.state === 'idle').map(o => ({ x: o.x, y: o.y, size: o.size, type: o.type, lm: !!o.landmark })), toScreen: (x, y) => { const p = P3(x, y, 0), W2 = cv.width, H2 = cv.height, k = PJ.k, zr = p[1] - PJ.ocy, f = 1 / (1 - zr * k); return [(W2 / 2 + (p[0] - PJ.ocx) * f) / dpr, (H2 / 2 + zr * f) / dpr]; } };
 function startFall(o) {
   o.state = 'fall'; o.ft = 0; o.dur = 0.6 + o.size * 0.1; o.sx = o.x; o.sy = o.y; o.spin = (Math.random() - 0.5) * 2.4; falling.push(o);
   Sfx.swallow(o.size, save.skin);
@@ -197,7 +306,19 @@ function finishFall(o) {
   if (o.critter) { critterQ.push({ f: o, at: time + 15 }); hole.pts += 1; scored++; hole.gulp = 0.5; checkLevel(); updateHud(); return; }
   if (o.moving) { o.state = 'idle'; o.along = o.speed > 0 ? -90 : W.SIZE + 90; placeVehicle(o); o.lane = city.lanes[Math.floor(Math.random() * city.lanes.length)]; o.speed = Math.abs(o.speed) * o.lane.sgn; placeVehicle(o); }
   else { const i = objs.indexOf(o); if (i >= 0) objs.splice(i, 1); o.x = o.sx; o.y = o.sy; if (mode === 'free') respawnQ.push({ o, at: time + 20 + Math.random() * 15 }); }
-  if (o.landmark && mode === 'run') { addStars(5); Sfx.win(); ending = 3.2; return; }
+  if (o.type === 'coin') { addCoins(1); updateHud(); return; }
+  if (o.type === 'gift') { addCoins(5); addStars(1); for (let i = 0; i < 30; i++) { const a = i / 30 * 7; parts.push({ x: hole.x, y: hole.y, vx: Math.cos(a) * 220, vy: Math.sin(a) * 220, life: 1, col: GIFTC[i % 4], sz: 4 }); } updateHud(); return; }
+  if (mode === 'order') {
+    orderIdx++; buildStrip(); Sfx.grow();
+    if (orderIdx >= ORDER.length) { addStars(3); Sfx.win(); ending = 3.2; markDone(curStop || 'order1', 3); }
+    updateHud(); return;
+  }
+  if (o.landmark && (mode === 'run' || mode === 'timed')) {
+    addStars(5); Sfx.win(); ending = 3.2;
+    if (mode === 'timed' && !ringDone) addCoins(25); // beat the ring: bonus coins
+    if (curStop) markDone(curStop, mode === 'timed' && !ringDone ? 3 : 2);
+    return;
+  }
   if (hole.level < 8) {
     hole.pts += o.size * o.size + 1; scored++; hole.gulp = Math.min(1, 0.4 + o.size * 0.08); // +1 so small early snacks always visibly fill the bar
     checkLevel();
@@ -205,7 +326,7 @@ function finishFall(o) {
   updateHud();
 }
 function checkLevel() {
-  if (hole.level < 8) {
+  if (hole.level < 8 && mode !== 'order') {
     if (hole.pts >= LEVEL_NEED[hole.level]) {
       hole.pts -= LEVEL_NEED[hole.level]; hole.level++; hole.pulse = 1; Sfx.grow(); addStars(1);
       for (let i = 0; i < 40; i++) { const a = Math.random() * 7; parts.push({ x: hole.x, y: hole.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, life: 1, col: ['#ffd84a', '#6fe0ff', '#ff7ab8', '#7dff9a'][i % 4], sz: 4 }); }
@@ -271,6 +392,11 @@ function render() {
     G(); drawCrackSprite(ctx, hole.x, hole.y, pr, ((SKINS.find(k => k.id === save.skin) || SKINS[0]).rim[0]).slice(0, 7), time);
     drawHole(ctx, hole.x, hole.y, pr, save.skin, time);
     drawSwirl(ctx, hole.x, hole.y, pr, time);
+    if (mode === 'order' && orderIdx < ORDER.length) { // dotted trail + numbered glow to the next thing to swallow
+      let best = null, bd = 1e9; for (const o of objs.concat(vehicles)) if (o.state === 'idle' && orderMatch(o)) { const d = Math.hypot(o.x - hole.x, o.y - hole.y); if (d < bd) { bd = d; best = o; } }
+      if (best) { ctx.save(); ctx.setLineDash([14, 14]); ctx.lineDashOffset = -time * 40; ctx.strokeStyle = 'rgba(255,200,60,.9)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(hole.x, hole.y); ctx.lineTo(best.x, best.y); ctx.stroke();
+        ctx.setLineDash([]); ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(255,190,50,' + (0.6 + Math.sin(time * 6) * 0.3) + ')'; ctx.beginPath(); ctx.arc(best.x, best.y, best.r + 14 + Math.sin(time * 6) * 4, 0, 7); ctx.stroke(); ctx.restore(); }
+    }
   }
   // projection shared by floor warp and 3D buildings
   setProjection({ s, camx: cam.x, camy: cam.y, ocx: ow / 2, ocy: oh * OCY, k: PK / cv.height });
@@ -295,7 +421,7 @@ function render() {
       ctx.save(); ctx.globalAlpha = 1 - ft * 0.6;
       if (is3D(o)) { drawBuilding3D(ctx, o, ft * ft * bDims(o).h * 1.1, (hole.x - o.sx) * sl, (hole.y - o.sy) * sl); ctx.restore(); continue; }
       ctx.translate(bx, by0 - hop + drop); ctx.rotate(ft * o.spin); const sc = 1 - ft * 0.45; ctx.scale(sc / Math.sqrt(sq), sc * sq);
-      if (o.critter) { if (o.ped) drawPed(ctx, o.critter, time); else drawBird(ctx, o.critter, time); }
+      if (o.type === 'coin' || o.type === 'gift') drawPickup(ctx, o, time); else if (o.critter) { if (o.ped) drawPed(ctx, o.critter, time); else drawBird(ctx, o.critter, time); }
       else if (o.moving) drawVehicleUp(ctx, o); else { const sb = spriteBox(o); if (sb) ctx.drawImage(sb.img, -sb.w / 2, -sb.h, sb.w, sb.h); }
       ctx.restore();
     }
@@ -320,6 +446,7 @@ function render() {
     if (it.ped) { ctx.translate(it.ped.x, it.ped.y * TILT); drawPed(ctx, it.ped, time); }
     else if (it.veh) { ctx.translate(it.veh.x, it.veh.y * TILT); if (it.veh.wob > 0) ctx.rotate(Math.sin(time * 30) * 0.06 * it.veh.wob); drawVehicleUp(ctx, it.veh); }
     else if (it.bird) { ctx.translate(it.bird.x, it.bird.y * TILT); drawBird(ctx, it.bird, time); }
+    else if (it.type === 'coin' || it.type === 'gift') { ctx.translate(it.x, it.y * TILT); drawPickup(ctx, it, time); }
     else if (is3D(it)) {
       if (playing || ending) { const bb = bBounds(it), hp = P3(hole.x, hole.y, 0); if (hp[0] > bb.x0 - 20 && hp[0] < bb.x1 + 20 && hp[1] > bb.y0 && hp[1] < bb.y1 && hole.y < it.y + it.d / 2) ctx.globalAlpha = 0.35; }
       if (it.wob > 0) { const j = Math.sin(time * 30) * 3 * it.wob; drawBuilding3D(ctx, it, 0, j, 0); } else drawBuilding3D(ctx, it);

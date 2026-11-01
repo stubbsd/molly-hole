@@ -4,6 +4,8 @@ const SKINS = [
   { id: 'tiger', cost: 12, rim: ['#e8871e', '#ffc066'] },
   { id: 'galaxy', cost: 25, rim: ['#6a3cff', '#e08bff'] },
   { id: 'ice', cost: 40, rim: ['#7fd8ff', '#ffffff'] },
+  { id: 'gold', cost: 0, coins: 40, rim: ['#e8b923', '#fff1a8'] },   // Molten Gold: unlocked with coins
+  { id: 'neon', cost: 0, coins: 90, rim: ['#19ff9c', '#d0ffef'] },
 ];
 function drawHole(ctx, x, y, R, skinId, t) {
   const s = SKINS.find(k => k.id === skinId) || SKINS[0];
