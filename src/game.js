@@ -46,11 +46,18 @@ cv.addEventListener('pointerdown', e => {
   e.preventDefault(); Sfx.init();
   if (activeId !== null || !playing || paused) return;
   activeId = e.pointerId; lastPX = e.clientX; lastPY = e.clientY; fingerDown = true;
+  hole.tx = hole.x; hole.ty = hole.y; // pressing never moves the hole: tracking starts from where it already is
   try { cv.setPointerCapture(e.pointerId); } catch (_) {}
 });
 cv.addEventListener('pointermove', e => {
   if (e.pointerId !== activeId) return; e.preventDefault();
-  lastPX = e.clientX; lastPY = e.clientY; // absolute: the hole heads for the point under the finger (no accumulated offset)
+  // 1:1 drag: the hole moves by exactly the ground distance the finger slid over (same camera for both
+  // points, so camera scrolling can't feed back into the target). No jump on press, no runaway at edges.
+  const a = screenToWorld(lastPX, lastPY), b = screenToWorld(e.clientX, e.clientY); lastPX = e.clientX; lastPY = e.clientY;
+  let tx = hole.tx + (b.x - a.x), ty = hole.ty + (b.y - a.y);
+  const lx = tx - hole.x, ly = ty - hole.y, L = Math.hypot(lx, ly), lead = 60 + hole.R; // never let the target run ahead
+  if (L > lead) { tx = hole.x + lx / L * lead; ty = hole.y + ly / L * lead; }
+  hole.tx = clamp(tx, 30, W.SIZE - 30); hole.ty = clamp(ty, 30, W.SIZE - 30);
 });
 const endPtr = e => { if (e.pointerId === activeId) { activeId = null; fingerDown = false; } };
 cv.addEventListener('pointerup', endPtr); cv.addEventListener('pointercancel', endPtr); cv.addEventListener('lostpointercapture', endPtr);
@@ -121,7 +128,7 @@ function update(dt) {
 
   if (AUTOPLAY) autoSteer();
   // hole glides toward target (smoothed, speed-capped)
-  if (fingerDown && !AUTOPLAY) { const w = screenToWorld(lastPX, lastPY); hole.tx = clamp(w.x, 30, W.SIZE - 30); hole.ty = clamp(w.y, 30, W.SIZE - 30); }
+  if (!fingerDown && !AUTOPLAY) { hole.tx = hole.x; hole.ty = hole.y; }
   const dx = hole.tx - hole.x, dy = hole.ty - hole.y, d = Math.hypot(dx, dy), maxV = (700 + hole.R * 4) * dt;
   // glued to the finger: closes ~95% of the gap in 0.15s; the cap only stops wild teleports on a jump-tap
   if (d > 0.01) { const k = Math.min(1, maxV / d, 1 - Math.exp(-20 * dt)); hole.x += dx * k; hole.y += dy * k; }
