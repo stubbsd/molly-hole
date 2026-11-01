@@ -19,11 +19,15 @@ function drawHole(ctx, x, y, R, skinId, t) { // simplified flat look: solid rim,
     ig.addColorStop(0, '#000'); ig.addColorStop(0.75, '#05070c'); ig.addColorStop(1, s.id === 'tiger' ? '#4a1a0a' : s.id === 'galaxy' ? '#1a0f3a' : s.id === 'neon' ? '#0a2a24' : '#101826');
     ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(x, y, R * 1.08, 0, 7); ctx.fill();
     const w = 2 * R * 1.04 / s.inner, h = w * im.height / im.width;
-    ctx.drawImage(im, x - w / 2, y - h / 2, w, h); ctx.restore(); return;
+    ctx.translate(x, y); ctx.rotate(-t * 0.8); ctx.drawImage(im, -w / 2, -h / 2, w, h); ctx.restore(); return; // rim spins anti-clockwise
   }
   // ref-video look: chunky soft white rim with a glossy inner lip and a deep purple throat
   ctx.fillStyle = 'rgba(40,60,10,.22)'; ctx.beginPath(); ctx.arc(x, y + rimW * 0.5, R + rimW * 1.6, 0, 7); ctx.fill();
   ctx.fillStyle = s.rim[0]; ctx.beginPath(); ctx.arc(x, y, R + rimW * 1.3, 0, 7); ctx.fill();
+  { // rim spins anti-clockwise: soft pastel notches round the white edge (screen y is down, so negative angle = anti-clockwise)
+    const n = 12, a0 = -t * 0.8, rr = R + rimW * 0.9; ctx.strokeStyle = s.rim[1] === '#e9e4f5' ? '#cdb8f0' : s.rim[1]; ctx.lineWidth = rimW * 0.55; ctx.lineCap = 'round';
+    ctx.beginPath(); for (let i = 0; i < n; i++) { const a = a0 + i * 6.2832 / n; ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); ctx.arc(x, y, rr, a, a + 0.22); } ctx.stroke();
+  }
   ctx.fillStyle = s.rim[1]; ctx.beginPath(); ctx.arc(x, y + rimW * 0.25, R + rimW * 0.5, 0, 7); ctx.fill();
   const g = ctx.createRadialGradient(x, y + R * 0.3, R * 0.1, x, y, R); g.addColorStop(0, '#240833'); g.addColorStop(0.7, s.inner || '#1a1030'); g.addColorStop(1, '#3b0f55');
   ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R - rimW * 0.05, 0, 7); ctx.fill();
