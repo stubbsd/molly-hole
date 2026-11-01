@@ -58,16 +58,16 @@ function markDone(id, st) { save.done[id] = Math.max(save.done[id] || 0, st); pe
 
 // ---------- start map ----------
 const STOPS = [
-  { id: 'run', px: 0.2246, py: 0.3958, icon: '🏙️', mode: 'run' },
-  { id: 'order1', px: 0.2979, py: 0.4983, icon: '🧩', mode: 'order' },
-  { id: 'gift1', px: 0.3984, py: 0.5122, icon: '🎁', mode: 'bonus', gift: true },
-  { id: 'timed1', px: 0.4932, py: 0.5469, icon: '⏱️', mode: 'timed' },
-  { id: 'free', px: 0.5859, py: 0.5417, icon: '♾️', mode: 'free' },
-  { id: 'gift2', px: 0.6719, py: 0.4479, icon: '🎁', mode: 'bonus', gift: true },
-  { id: 'thorn', px: 0.4102, py: 0.7257, icon: '🏡', soon: true, world: '🌳' },
-  { id: 'district', px: 0.2373, py: 0.7604, icon: '🌉', soon: true },
-  { id: 'desert', px: 0.8086, py: 0.6042, icon: '🦕', soon: true, world: '🏝️' },
-  { id: 'moon', px: 0.5156, py: 0.3264, icon: '🌙', soon: true, world: '🚀' },
+  { id: 'run', px: 0.2246, py: 0.3958, icon: 'city', mode: 'run' },
+  { id: 'order1', px: 0.2979, py: 0.4983, icon: 'puzzle', mode: 'order' },
+  { id: 'gift1', px: 0.3984, py: 0.5122, icon: '', mode: 'bonus', gift: true },
+  { id: 'timed1', px: 0.4932, py: 0.5469, icon: 'timer', mode: 'timed' },
+  { id: 'free', px: 0.5859, py: 0.5417, icon: 'free', mode: 'free' },
+  { id: 'gift2', px: 0.6719, py: 0.4479, icon: '', mode: 'bonus', gift: true },
+  { id: 'thorn', px: 0.4102, py: 0.7257, icon: 'w-thorn', soon: true },
+  { id: 'district', px: 0.2373, py: 0.7604, icon: 'w-district', soon: true },
+  { id: 'desert', px: 0.8086, py: 0.6042, icon: 'w-desert', soon: true },
+  { id: 'moon', px: 0.5156, py: 0.3264, icon: 'w-moon', soon: true },
 ];
 const stopOpen = i => !STOPS[i].soon && (i === 0 || !!save.done[STOPS[i - 1].id] || !!save.done[STOPS[i].id]);
 function stopPos(i) { const inr = $('mapInner'); return { x: STOPS[i].px * inr.clientWidth, y: STOPS[i].py * inr.clientHeight }; }
@@ -80,7 +80,8 @@ function buildMap() {
     if (open && !done && next < 0) next = i;
     b.className = 'stop' + (st.gift ? ' gift' : '') + (open ? '' : ' locked') + (i === next ? ' next' : '') + (done ? ' done' : '');
     b.style.left = (st.px * 100) + '%'; b.style.top = (st.py * 100) + '%';
-    b.innerHTML = '<span class="face">' + (open ? (st.gift ? '🎁' : st.icon) : LOCK_SVG) + '</span>' + (!open && st.soon ? `<span class="wb">${st.icon}</span>` : '') + (done && !st.gift ? `<span class="st">${'★'.repeat(Math.min(3, done))}</span>` : '');
+    const ico = n => n ? `<img src="assets/map/icons/${n}.webp" alt="" draggable="false">` : '';
+    b.innerHTML = '<span class="face">' + (open && !st.gift ? ico(st.icon) : '') + '</span>' + (!open && st.soon ? `<span class="wb">${ico(st.icon)}</span>` : '') + (done && !st.gift ? `<span class="st">${'★'.repeat(Math.min(3, done))}</span>` : '');
     b.addEventListener('pointerup', e => { e.stopPropagation(); Sfx.init(); if (!open) { Sfx.teeter(); b.animate([{ transform: 'rotate(-10deg)' }, { transform: 'rotate(10deg)' }, { transform: 'rotate(0)' }], 300); return; } pickStop(i); });
     inner.appendChild(b);
   });
