@@ -169,7 +169,9 @@ function lanePt(l, s, off) {
 
 function spawnVehicle(city, initial) {
   const R = city.R, lane = city.lanes[Math.floor(R() * city.lanes.length)];
-  const kind = lane.canal ? 'nboat' : pick(TH().veh, R()), [type, len, wid] = VEH[kind], vs = (TH().vspr || {})[kind];
+  let kind = lane.canal ? 'nboat' : pick(TH().veh, R());
+  if (lane.dir === 'v' && (TH().vspr || {})[kind]) kind = 'car'; // side-view-only sprites (tram etc.) stay on east-west roads so they always look straight
+  const [type, len, wid] = VEH[kind], vs = (TH().vspr || {})[kind];
   const along = lane.dir === 'p' ? R() * lane.L : initial ? R() * W.SIZE : (lane.sgn > 0 ? -60 : W.SIZE + 60);
   const slow = lane.canal ? 0.4 : THEME === 'desert' ? 0.55 : THEME === 'village' && kind === 'tractor' ? 0.5 : 1;
   const speed = (type === 'bus' ? 55 : 80 + R() * 40) * slow * lane.sgn;
