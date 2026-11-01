@@ -39,7 +39,7 @@ let lastMode = null, curWorld = 'city', lastWorld = 'city';
 function startGame(m, world, seed) {
   curWorld = world || 'city'; lastMode = m; lastWorld = curWorld;
   Sfx.init(); Sfx.startMusic(); newWorld(seed);
-  mode = m; playing = true; paused = false; ending = 0; runStars = 0; runCoins = 0; orderIdx = 0; ringT = 0; ringDone = false;
+  mode = m; playing = true; paused = false; ending = 0; runStars = 0; runCoins = 0; orderIdx = 0; ringT = 0; ringDone = false; ringP = -1;
   // start on a road near a corner of the central area
   const p = W.PITCH * 2 + W.ROAD / 2, lv = m === 'order' ? orderLv(0) : m === 'bonus' ? 2 : 1, sx = city.start ? city.start.x : p, sy = city.start ? city.start.y : p;
   Object.assign(hole, { x: sx, y: sy, tx: sx, ty: sy, R: HOLE_R[lv], level: lv, pts: 0, pulse: 0 });
@@ -189,7 +189,7 @@ cv.addEventListener('pointermove', e => {
   if (e.pointerId !== activeId) return; e.preventDefault();
   lastPX = e.clientX; lastPY = e.clientY;
   // anchor trails behind the finger once it's far away, so reversing direction is instant
-  const vx = lastPX - anchorX, vy = lastPY - anchorY, L = Math.hypot(vx, vy);
+  const vx = lastPX - anchorX, vy = lastPY - anchorY, L = hyp(vx, vy);
   if (L > STICK) { anchorX = lastPX - vx / L * STICK; anchorY = lastPY - vy / L * STICK; }
   showStick();
 });
@@ -263,7 +263,7 @@ function update(dt) {
   // vehicles always drive (living world), slower near the hole so they are catchable
   for (const v of vehicles) {
     if (v.state !== 'idle') continue;
-    const near = playing && Math.hypot(v.x - hole.x, v.y - hole.y) < hole.R + 140;
+    const near = playing && hyp(v.x - hole.x, v.y - hole.y) < hole.R + 140;
     v.along += v.speed * dt * (near ? 0.35 : 1);
     if (v.lane.dir !== 'p' && (v.along < -100 || v.along > W.SIZE + 100)) v.along = v.speed > 0 ? -90 : W.SIZE + 90;
     placeVehicle(v);
@@ -275,10 +275,10 @@ function update(dt) {
   // hole glides toward target (smoothed, speed-capped)
   if (!AUTOPLAY) { // steer: direction = finger offset from the press point, speed grows with the offset
     hole.tx = hole.x; hole.ty = hole.y;
-    if (fingerDown) { const vx = lastPX - anchorX, vy = lastPY - anchorY, L = Math.hypot(vx, vy);
-      if (L > 6) { const sp = (210 + hole.R * 2.7) * Math.min(1, (L - 6) / (STICK * 0.6 - 6)), wy = vy / TILT, n = Math.hypot(vx, wy);
+    if (fingerDown) { const vx = lastPX - anchorX, vy = lastPY - anchorY, L = hyp(vx, vy);
+      if (L > 6) { const sp = (210 + hole.R * 2.7) * Math.min(1, (L - 6) / (STICK * 0.6 - 6)), wy = vy / TILT, n = hyp(vx, wy);
         hole.tx = clamp(hole.x + vx / n * sp * dt, 30, W.SIZE - 30); hole.ty = clamp(hole.y + wy / n * sp * dt, 30, W.SIZE - 30); } } }
-  const dx = hole.tx - hole.x, dy = hole.ty - hole.y, d = Math.hypot(dx, dy), maxV = (AUTOPLAY ? 380 + hole.R * 3 : 1e5) * dt;
+  const dx = hole.tx - hole.x, dy = hole.ty - hole.y, d = hyp(dx, dy), maxV = (AUTOPLAY ? 380 + hole.R * 3 : 1e5) * dt;
   // glued to the finger: closes ~95% of the gap in 0.15s; the cap only stops wild teleports on a jump-tap
   if (d > 0.01) { const k = Math.min(1, maxV / d); hole.x += dx * k; hole.y += dy * k; }
   const targetR = HOLE_R[hole.level];
@@ -287,7 +287,7 @@ function update(dt) {
   // swallow / teeter
   for (let ai = 0, an = objs.length + vehicles.length; ai < an; ai++) { const o = ai < objs.length ? objs[ai] : vehicles[ai - objs.length]; if (!o) continue;
     if (o.state !== 'idle') continue;
-    const dd = Math.hypot(o.x - hole.x, o.y - hole.y);
+    const dd = hyp(o.x - hole.x, o.y - hole.y);
     if (dd > hole.R + o.r + 10) { o.wob = Math.max(0, o.wob - dt); continue; }
     // fits = its size tier is allowed OR (small street prop) its footprint is clearly smaller than the hole;
     // goes in once its centre is over the hole (was: had to sit almost fully inside, so trees/bins on the rim refused)
@@ -304,7 +304,7 @@ function update(dt) {
   for (const arr of [peds, birds]) for (let i = arr.length - 1; i >= 0; i--) {
     const c = arr[i]; if (falling.length >= 8) break;
     if (mode === 'order') { pushOut(c, hole.R + 10); continue; }
-    if (Math.hypot(c.x - hole.x, c.y - hole.y) < hole.R * 0.85 + (arr === peds ? 12 : 0)) { /* people: a little extra reach so small hands catch them */ arr.splice(i, 1); startFall({ critter: c, arr, ped: arr === peds, x: c.x, y: c.y, size: 1, r: 6 }); }
+    if (hyp(c.x - hole.x, c.y - hole.y) < hole.R * 0.85 + (arr === peds ? 12 : 0)) { /* people: a little extra reach so small hands catch them */ arr.splice(i, 1); startFall({ critter: c, arr, ped: arr === peds, x: c.x, y: c.y, size: 1, r: 6 }); }
   }
   for (let i = critterQ.length - 1; i >= 0; i--) { const q = critterQ[i]; if (time > q.at) { const c = q.f.critter; c.ox = c.oy = 0; c.run = 0; c.fly = 0; if (!q.f.ped) { c.x = c.hx; c.y = c.hy; } q.f.arr.push(c); critterQ.splice(i, 1); } }
   for (const f of falling) f.ft += dt / f.dur;
@@ -313,11 +313,11 @@ function update(dt) {
   // free play: refill things once the hole is away
   if (mode === 'free') for (let i = respawnQ.length - 1; i >= 0; i--) {
     const q = respawnQ[i]; if (time < q.at) continue;
-    if (Math.hypot(q.o.x - hole.x, q.o.y - hole.y) > hole.R + q.o.r + 250) { q.o.state = 'idle'; q.o.ft = 0; q.o.pop = 1; objs.push(q.o); respawnQ.splice(i, 1); }
+    if (hyp(q.o.x - hole.x, q.o.y - hole.y) > hole.R + q.o.r + 250) { q.o.state = 'idle'; q.o.ft = 0; q.o.pop = 1; objs.push(q.o); respawnQ.splice(i, 1); }
   }
   updateParts(dt); for (let i = yips.length - 1; i >= 0; i--) if ((yips[i].t += dt) > 1.3) yips.splice(i, 1); for (let i = pops.length - 1; i >= 0; i--) if ((pops[i].t += dt) > 0.9) pops.splice(i, 1);
   if (mode === 'timed' && !ringDone && !ending) {
-    ringT += dt; $('ring').style.setProperty('--p', Math.min(100, ringT / RING_T * 100).toFixed(1) + '%');
+    ringT += dt; { const rp = Math.round(Math.min(100, ringT / RING_T * 100) * 10); if (rp !== ringP) { ringP = rp; $('ring').style.setProperty('--p', (rp / 10).toFixed(1) + '%'); } } // GC: only touch the DOM when the shown value changes
     if (ringT >= RING_T) { ringDone = true; paused = true; fingerDown = false; activeId = null; hideStick(); show('timeup'); } // nothing fails: Continue or Exit
   }
   if (!ending && (snapT += dt) > 4) { snapT = 0; saveSnap(); }
@@ -338,10 +338,10 @@ function update(dt) {
 const AUTOPLAY = /[?&]autoplay=1/.test(location.search);
 function autoSteer() {
   let best = null, bs = -1;
-  for (const o of objs.concat(vehicles)) {
+  for (let ai = 0, an = objs.length + vehicles.length; ai < an; ai++) { const o = ai < objs.length ? objs[ai] : vehicles[ai - objs.length];
     if (o.state !== 'idle' || o.size > hole.level) continue;
     if (mode === 'order' && !orderMatch(o) && !o.landmark) continue;
-    const d = Math.hypot(o.x - hole.x, o.y - hole.y) + 40, sc = (o.landmark ? 1e4 : o.size * o.size) / d;
+    const d = hyp(o.x - hole.x, o.y - hole.y) + 40, sc = (o.landmark ? 1e4 : o.size * o.size) / d;
     if (sc > bs) { bs = sc; best = o; }
   }
   if (best) { hole.tx = clamp(best.x, 30, W.SIZE - 30); hole.ty = clamp(best.y, 30, W.SIZE - 30); }
@@ -389,7 +389,7 @@ function checkLevel() {
   updateHud();
 }
 
-function pushOut(a, minD) { const dx = a.x - hole.x, dy = a.y - hole.y, d = Math.hypot(dx, dy) || 1; if (d < minD) { a.x = hole.x + dx / d * minD; a.y = hole.y + dy / d * minD; } return d; }
+function pushOut(a, minD) { const dx = a.x - hole.x, dy = a.y - hole.y, d = hyp(dx, dy) || 1; if (d < minD) { a.x = hole.x + dx / d * minD; a.y = hole.y + dy / d * minD; } return d; }
 function updatePeds(dt) {
   const e = W.PAVE / 2;
   for (const p of peds) {
@@ -400,7 +400,7 @@ function updatePeds(dt) {
     else if (side === 2) { px = p.bx + e + L - f * L; py = p.by + e + L; } else { px = p.bx + e; py = p.by + e + L - f * L; }
     p.ox = p.ox || 0; p.oy = p.oy || 0;
     if (playing) {
-      const dx = px + p.ox - hole.x, dy = py + p.oy - hole.y, d = Math.hypot(dx, dy) || 1;
+      const dx = px + p.ox - hole.x, dy = py + p.oy - hole.y, d = hyp(dx, dy) || 1;
       if (d < hole.R + 45) { p.run = 1; p.ox += dx / d * 90 * dt; p.oy += dy / d * 90 * dt; } else { p.run = Math.max(0, p.run - dt); p.ox *= 1 - dt; p.oy *= 1 - dt; }
     }
     p.x = px + p.ox; p.y = py + p.oy;
@@ -408,7 +408,7 @@ function updatePeds(dt) {
 }
 function updateBirds(dt) {
   for (const b of birds) {
-    const dx = b.x - hole.x, dy = b.y - hole.y, d = Math.hypot(dx, dy) || 1;
+    const dx = b.x - hole.x, dy = b.y - hole.y, d = hyp(dx, dy) || 1;
     if (playing && d < hole.R + 60 && b.fly <= 0) { b.fly = 1.2; const sp = b.kind === 'pigeon' ? 160 : 90; b.vx = dx / d * sp; b.vy = dy / d * sp; }
     if (b.fly > 0) { b.fly -= dt; b.x += b.vx * dt; b.y += b.vy * dt; }
     else { b.x += (b.hx - b.x) * dt * 0.08 + Math.sin(time * 2 + b.hx) * 4 * dt; b.y += (b.hy - b.y) * dt * 0.08 + Math.cos(time * 1.7 + b.hy) * 4 * dt; }
@@ -427,6 +427,10 @@ function updateParts(dt) { for (let i = parts.length - 1; i >= 0; i--) { const p
 // every prop/shadow on it shares exactly the same projection.
 const oc = document.createElement('canvas'), octx = oc.getContext('2d'), RLIST = [], depthCmp = (a, b) => (a.y + (a._k ? 0 : (a.d || 0) / 2)) - (b.y + (b._k ? 0 : (b.d || 0) / 2));
 const EXW = 1.12, EXH = 1.07, PK = 0.22, OCY = 0.53; // just big enough for the warp source (was 1.8×1.6 = 2.6× the pixels)
+const SIZE_TXT = Array.from({ length: 12 }, (_, i) => 'Size ' + i); let ringP = -1;
+const VIEW = { x0: 0, x1: 0, y0: 0, y1: 0 }, PROJ = { ow: 0, oh: 0, s: 0, ox: 0, oy: 0, W2: 0, H2: 0, k: 0 }, FONTS = new Map();
+const font900 = px => { let f = FONTS.get(px); if (!f) { f = `900 ${px}px system-ui,sans-serif`; if (FONTS.size > 400) FONTS.clear(); FONTS.set(px, f); } return f; };
+let holeDG = null, crackSkin = null, crackCol = '';
 function render() {
   const mctx = window.ctx || cv.getContext('2d');
   const ow = Math.ceil(cv.width * EXW), oh = Math.ceil(cv.height * EXH);
@@ -437,16 +441,16 @@ function render() {
   const G = () => ctx.setTransform(s, 0, 0, s * TILT, ox, oy);   // ground space
   const U = () => ctx.setTransform(s, 0, 0, s, ox, oy);          // upright space (y pre-multiplied by TILT)
   const hw = Wd * EXW / 2 / cam.s, hh = Ht * EXH / 2 / cam.s / TILT;
-  const view = { x0: cam.x - hw - 200, x1: cam.x + hw + 200, y0: cam.y - hh - 200, y1: cam.y + hh + 1400 };
+  const view = VIEW; view.x0 = cam.x - hw - 200; view.x1 = cam.x + hw + 200; view.y0 = cam.y - hh - 200; view.y1 = cam.y + hh + 1400;
   drawGroundCached(ctx, s, ox, oy, view);
   const vis = o => o.x > view.x0 - 150 && o.x < view.x1 + 150 && o.y > view.y0 && o.y < view.y1;
   if (playing || ending) {
     const pr = hole.R * (1 + Math.sin(hole.pulse * 10) * hole.pulse * 0.08 + Math.sin((hole.gulp || 0) * 9) * (hole.gulp || 0) * 0.07);
-    G(); drawCrackSprite(ctx, hole.x, hole.y, pr, ((SKINS.find(k => k.id === save.skin) || SKINS[0]).rim[0]).slice(0, 7), time);
+    G(); if (crackSkin !== save.skin) { crackSkin = save.skin; crackCol = ((SKINS.find(k => k.id === save.skin) || SKINS[0]).rim[0]).slice(0, 7); } drawCrackSprite(ctx, hole.x, hole.y, pr, crackCol, time);
     drawHole(ctx, hole.x, hole.y, pr, save.skin, time);
     drawSwirl(ctx, hole.x, hole.y, pr, time);
     if (mode === 'order' && orderIdx < ORDER.length) { // dotted trail + numbered glow to the next thing to swallow
-      let best = null, bd = 1e9; for (const o of objs.concat(vehicles)) if (o.state === 'idle' && orderMatch(o)) { const d = Math.hypot(o.x - hole.x, o.y - hole.y); if (d < bd) { bd = d; best = o; } }
+      let best = null, bd = 1e9; for (const o of objs.concat(vehicles)) if (o.state === 'idle' && orderMatch(o)) { const d = hyp(o.x - hole.x, o.y - hole.y); if (d < bd) { bd = d; best = o; } }
       if (best) { ctx.save(); ctx.setLineDash([14, 14]); ctx.lineDashOffset = -time * 40; ctx.strokeStyle = 'rgba(255,200,60,.9)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(hole.x, hole.y); ctx.lineTo(best.x, best.y); ctx.stroke();
         ctx.setLineDash([]); ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(255,190,50,' + (0.6 + Math.sin(time * 6) * 0.3) + ')'; ctx.beginPath(); ctx.arc(best.x, best.y, best.r + 14 + Math.sin(time * 6) * 4, 0, 7); ctx.stroke(); ctx.restore(); }
     }
@@ -482,8 +486,8 @@ function render() {
       ctx.restore();
     }
     // inner darkness over the sunk part so it reads as depth
-    const dg = ctx.createLinearGradient(0, hy - pr * TILT, 0, hy + pr * TILT); dg.addColorStop(0, 'rgba(0,0,0,0)'); dg.addColorStop(1, 'rgba(0,0,0,.55)');
-    ctx.beginPath(); ctx.ellipse(hole.x, hy, pr, pr * TILT, 0, 0, 7); ctx.fillStyle = dg; ctx.fill();
+    if (!holeDG) { holeDG = ctx.createLinearGradient(0, -1, 0, 1); holeDG.addColorStop(0, 'rgba(0,0,0,0)'); holeDG.addColorStop(1, 'rgba(0,0,0,.55)'); } // GC: cached unit gradient, scaled per frame
+    ctx.save(); ctx.translate(hole.x, hy); ctx.scale(pr, pr * TILT); ctx.beginPath(); ctx.arc(0, 0, 1, 0, 7); ctx.fillStyle = holeDG; ctx.fill(); ctx.restore();
     ctx.restore();
   }
   G();
@@ -523,9 +527,9 @@ function render() {
   ctx.globalAlpha = 1;
   if (playing || ending) { // ref-video HUD-in-world: "Size N" label above the hole, growth bar below, "+N" pops
     U(); const fs = Math.max(16, hole.R * 0.42), hx = hole.x, hyy = hole.y * TILT;
-    ctx.font = `900 ${fs}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
+    ctx.font = font900(fs); ctx.textAlign = 'center'; ctx.lineJoin = 'round';
     const lab = (txt, x, y, col) => { ctx.lineWidth = fs * 0.22; ctx.strokeStyle = '#5a2a86'; ctx.strokeText(txt, x, y); ctx.fillStyle = col; ctx.fillText(txt, x, y); };
-    lab('Size ' + hole.level, hx, hyy - hole.R * TILT - hole.R * 0.45, '#ffe46b');
+    lab(SIZE_TXT[hole.level] || 'Size ' + hole.level, hx, hyy - hole.R * TILT - hole.R * 0.45, '#ffe46b');
     for (const p of pops) { ctx.globalAlpha = 1 - p.t / 0.9; lab(p.txt, p.x + hole.R * 0.5, p.y * TILT - hole.R * TILT - hole.R * 0.45 - fs - p.t * 60, '#ffffff'); }
     ctx.globalAlpha = 1;
     const bw = hole.R * 1.4, bh = Math.max(7, fs * 0.38), by = hyy + hole.R * TILT + hole.R * 0.35, fr = hole.level >= 8 ? 1 : Math.min(1, hole.pts / LEVEL_NEED[hole.level]);
@@ -534,7 +538,7 @@ function render() {
   }
   // perspective warp onto the screen
   const W2 = cv.width, H2 = cv.height, cy = H2 * 0.5, ocx = ow / 2, ocy = oh * OCY, k = PK / H2, step = 6;
-  proj = { ow, oh, s, ox, oy, W2, H2, k };
+  proj = PROJ; PROJ.ow = ow; PROJ.oh = oh; PROJ.s = s; PROJ.ox = ox; PROJ.oy = oy; PROJ.W2 = W2; PROJ.H2 = H2; PROJ.k = k;
   mctx.setTransform(1, 0, 0, 1, 0, 0); mctx.imageSmoothingEnabled = true;
   const zOf = Y => Y / (1 + Y * k);
   for (let Y = -cy; Y < H2 - cy; Y += step) {
@@ -545,7 +549,7 @@ function render() {
   if (!depthG || depthG.h !== H2) { const t = mctx.createLinearGradient(0, 0, 0, H2 * 0.42); t.addColorStop(0, 'rgba(190,225,255,.55)'); t.addColorStop(1, 'rgba(190,225,255,0)');
     const b = mctx.createLinearGradient(0, H2 * 0.78, 0, H2); b.addColorStop(0, 'rgba(20,30,60,0)'); b.addColorStop(1, 'rgba(20,30,60,.16)'); depthG = { h: H2, t, b }; }
   if (yips.length) { // chunky YIPPEE! pops in with an overshoot bounce, wiggles, floats up and fades
-    const fz = Math.min(W2, H2) * 0.14; mctx.textAlign = 'center'; mctx.textBaseline = 'middle'; mctx.lineJoin = 'round'; mctx.font = `900 ${fz}px system-ui,sans-serif`;
+    const fz = Math.min(W2, H2) * 0.14; mctx.textAlign = 'center'; mctx.textBaseline = 'middle'; mctx.lineJoin = 'round'; mctx.font = font900(fz);
     for (const y of yips) { const k = y.t, sc = k < 0.25 ? (k / 0.25) * 1.25 : k < 0.4 ? 1.25 - (k - 0.25) / 0.15 * 0.25 : 1, al = k > 0.9 ? 1 - (k - 0.9) / 0.4 : 1;
       mctx.save(); mctx.globalAlpha = Math.max(0, al); mctx.translate(W2 / 2, H2 * 0.3 - k * fz * 0.4); mctx.rotate(Math.sin(k * 14) * 0.08); mctx.scale(sc, sc);
       mctx.lineWidth = fz * 0.2; mctx.strokeStyle = '#6a2aa0'; mctx.strokeText('YIPPEE!', 0, 0); mctx.fillStyle = '#ffe14a'; mctx.fillText('YIPPEE!', 0, 0);

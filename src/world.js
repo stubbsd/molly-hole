@@ -1,3 +1,4 @@
+const hyp = (a, b) => Math.sqrt(a * a + b * b); // GC: Math.hypot boxes its varargs in V8/JSC
 // Harbour Heights: procedural high-rise city. All art drawn on canvas.
 const W = {
   N: 7, PITCH: 420, ROAD: 110, PAVE: 26,
@@ -102,7 +103,7 @@ function buildCity(seed = 7) {
     } else if (kind === 'park') {
       if (TH().canal) blocks[blocks.length - 1].pond = { x: cx, y: cy, rx: 150, ry: 70 }; else
       blocks[blocks.length - 1].pond = { x: cx + 30, y: cy + 20, rx: 70, ry: 50 };
-      for (let i = 0; i < 10; i++) { const x = a + R() * s, y = b + R() * s; if (Math.hypot(x - cx - 30, y - cy - 20) > 90) objs.push(makeObj('tree', x, y, { hue: R() })); }
+      for (let i = 0; i < 10; i++) { const x = a + R() * s, y = b + R() * s; if (hyp(x - cx - 30, y - cy - 20) > 90) objs.push(makeObj('tree', x, y, { hue: R() })); }
       for (let i = 0; i < 3; i++) objs.push(makeObj('bench', a + 30 + i * 70, b + s - 25));
       if (THEME === 'moon') blocks[blocks.length - 1].crater = true;
       for (let i = 0; i < 4; i++) birds.push({ kind: THEME === 'moon' ? 'alien' : 'duck', x: cx + 30 + (R() - 0.5) * 80, y: cy + 20 + (R() - 0.5) * 50, hx: cx + 30, hy: cy + 20, fly: 0, vx: 0, vy: 0 });
@@ -139,7 +140,7 @@ function buildCity(seed = 7) {
 }
 // winding lanes / dune tracks / rover loops instead of a street grid
 function pathLane(pts, closed, sgn) {
-  const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + hyp(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
   return { dir: 'p', pts, cum, L: cum[cum.length - 1], closed, sgn };
 }
 function organicPaths(c) {
@@ -148,13 +149,13 @@ function organicPaths(c) {
     const pts = []; for (let i = 0; i <= 140; i++) { const t = i / 140 * Math.PI * 2, r = S * rr * (1 + a * Math.sin(3 * t + ph) + b * Math.sin(5 * t + ph * 2)); pts.push([C + Math.cos(t) * r, C + Math.sin(t) * r]); }
     paths.push({ pts, closed: true });
   }
-  const mk = (x0, y0, x1, y1, amp, f) => { const pts = []; for (let i = 0; i <= 90; i++) { const u = i / 90, nx = -(y1 - y0), ny = x1 - x0, nl = Math.hypot(nx, ny), w = amp * Math.sin(u * Math.PI * f + ph) ; pts.push([x0 + (x1 - x0) * u + nx / nl * w, y0 + (y1 - y0) * u + ny / nl * w]); } return { pts, closed: false }; };
+  const mk = (x0, y0, x1, y1, amp, f) => { const pts = []; for (let i = 0; i <= 90; i++) { const u = i / 90, nx = -(y1 - y0), ny = x1 - x0, nl = hyp(nx, ny), w = amp * Math.sin(u * Math.PI * f + ph) ; pts.push([x0 + (x1 - x0) * u + nx / nl * w, y0 + (y1 - y0) * u + ny / nl * w]); } return { pts, closed: false }; };
   paths.push(mk(-200, S * 0.18, S + 200, S * 0.72, 220, 3), mk(S * 0.2, S + 200, S * 0.86, -200, 200, 2.5), mk(-200, S * 0.9, S * 0.55, -200, 160, 2));
   const lanes = []; for (const p of paths) lanes.push(pathLane(p.pts, p.closed, 1), pathLane(p.pts, p.closed, -1));
   // clear anything sitting on a track
   const hw = TH().organic.w / 2 + 6, G = new Map(), key = (x, y) => (Math.floor(x / 120) * 1000 + Math.floor(y / 120));
   for (const l of lanes) for (let d = 0; d < l.L; d += 14) { const q = lanePt(l, d, 0); const k = key(q.x, q.y); (G.get(k) || G.set(k, []).get(k)).push(q); }
-  const near = (x, y, r) => { for (let gx = -1; gx <= 1; gx++) for (let gy = -1; gy <= 1; gy++) for (const q of G.get(key(x + gx * 120, y + gy * 120)) || []) if (Math.hypot(q.x - x, q.y - y) < r) return true; return false; };
+  const near = (x, y, r) => { for (let gx = -1; gx <= 1; gx++) for (let gy = -1; gy <= 1; gy++) for (const q of G.get(key(x + gx * 120, y + gy * 120)) || []) if (hyp(q.x - x, q.y - y) < r) return true; return false; };
   const inPond = (x, y) => c.blocks.some(b => b.pond && ((x - b.pond.x) / (b.pond.rx + 22)) ** 2 + ((y - b.pond.y) / (b.pond.ry + 22)) ** 2 < 1);
   c.objs = c.objs.filter(o => o.landmark || (!near(o.x, o.y, hw + (o.w ? Math.max(o.w, o.d) * 0.45 : o.r * 0.7)) && !inPond(o.x, o.y)));
   const st = lanePt(lanes[2], lanes[2].L * 0.08, 0);
@@ -163,7 +164,7 @@ function organicPaths(c) {
 function lanePt(l, s, off) {
   s = ((s % l.L) + l.L) % l.L; let lo = 0, hi = l.cum.length - 1;
   while (hi - lo > 1) { const m = (lo + hi) >> 1; if (l.cum[m] <= s) lo = m; else hi = m; }
-  const a = l.pts[lo], b = l.pts[hi], u = (s - l.cum[lo]) / Math.max(1e-6, l.cum[hi] - l.cum[lo]), dx = b[0] - a[0], dy = b[1] - a[1], n = Math.hypot(dx, dy) || 1;
+  const a = l.pts[lo], b = l.pts[hi], u = (s - l.cum[lo]) / Math.max(1e-6, l.cum[hi] - l.cum[lo]), dx = b[0] - a[0], dy = b[1] - a[1], n = hyp(dx, dy) || 1;
   return { x: a[0] + dx * u - dy / n * off, y: a[1] + dy * u + dx / n * off, ang: Math.atan2(dy, dx) };
 }
 
@@ -312,7 +313,7 @@ function drawOrganicGround(ctx, city, view) {
   if (THEME === 'desert') { ctx.strokeStyle = 'rgba(232,170,95,.42)'; ctx.lineWidth = O.w; city.paths.forEach(trace); }
   if (O.tyre) { ctx.strokeStyle = 'rgba(40,42,50,.35)'; ctx.lineWidth = 6; }
   else { ctx.strokeStyle = THEME === 'village' ? 'rgba(90,130,50,.35)' : 'rgba(255,250,235,.18)'; ctx.lineWidth = THEME === 'village' ? 8 : 18; }
-  for (const p of city.paths) for (const off of O.tyre ? [-14, 14] : [0]) { ctx.beginPath(); p.pts.forEach((q, i, a) => { const n = a[Math.min(i + 1, a.length - 1)], m = a[Math.max(i - 1, 0)], dx = n[0] - m[0], dy = n[1] - m[1], l = Math.hypot(dx, dy) || 1, x = q[0] - dy / l * off, y = q[1] + dx / l * off; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); }
+  for (const p of city.paths) for (const off of O.tyre ? [-14, 14] : [0]) { ctx.beginPath(); p.pts.forEach((q, i, a) => { const n = a[Math.min(i + 1, a.length - 1)], m = a[Math.max(i - 1, 0)], dx = n[0] - m[0], dy = n[1] - m[1], l = hyp(dx, dy) || 1, x = q[0] - dy / l * off, y = q[1] + dx / l * off; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); }
 }
 // soft ground shadows for upright things (ground transform)
 function drawShadow(ctx, o) {
@@ -329,12 +330,13 @@ function spriteFor(o) {
   return o.type;
 }
 // upright sprite metrics in "upright space" (x, y*TILT); returns {img,w,h,bx,by}
+const SB = { img: null, w: 0, h: 0, bx: 0, by: 0 };
 function spriteBox(o) {
   const img = SPR[spriteFor(o)]; if (!img) return null;
   const w = o.sw ? o.sw : o.spr ? o.w * 1.3 : o.type !== 'tower' && o.w ? o.w * 1.12 : SPRITE_W[o.type] || 30;
   const h = w * img.height / img.width;
   const by = o.y * TILT + (o.d ? o.d * TILT * 0.5 : 4);
-  return { img, w, h, bx: o.x, by };
+  SB.img = img; SB.w = w; SB.h = h; SB.bx = o.x; SB.by = by; return SB; // GC: one reused box, callers read it straight away
 }
 // vehicles: top-down sprites in ground space
 function drawVehicle(ctx, o) {
@@ -387,8 +389,9 @@ function drawObj(ctx, o) { // generic, used for falling items (ground space)
   ctx.drawImage(sb.img, -sb.w / 2, -sb.h * 0.8, sb.w, sb.h);
 }
 // people and birds in upright space
+const PN = ['p-0', 'p-1', 'p-2', 'p-3', 'p-4', 'p-5'], PN_ASTRO = ['p-astro0', 'p-astro1'];
 function drawPed(ctx, p, t) {
-  const im = SPR[THEME === 'moon' ? 'p-astro' + (p.col % 2) : 'p-' + (p.col % 6)];
+  const im = SPR[THEME === 'moon' ? PN_ASTRO[p.col % 2] : PN[p.col % 6]];
   if (im) { // painted person: walk bob + slight sway, faces the way they walk
     const ph = t * (p.run ? 16 : 9) + p.t * 50, h = 30, w = h * im.width / im.height;
     ctx.fillStyle = 'rgba(10,15,30,.28)'; ctx.beginPath(); ctx.ellipse(2, 1, 7, 2.6, 0, 0, 7); ctx.fill();
@@ -468,21 +471,22 @@ function castShadow(ctx, img, bx, by, w, h, rot, flip) {
 // ctx.filter is very slow on iPad Safari, so car colour variants are baked once into cached canvases
 const TINT = new Map();
 function tinted(img, hue) {
-  const i = Math.floor(hue * CAR_TINT.length), key = img.src + i; let c = TINT.get(key); if (c) return c;
+  const i = Math.floor(hue * CAR_TINT.length); let m = TINT.get(img); if (!m) TINT.set(img, m = []); let c = m[i]; if (c) return c; // GC: keyed by image object, no string concat
   c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const x = c.getContext('2d');
   x.filter = `hue-rotate(${CAR_TINT[i]}deg) saturate(${hue > 0.85 ? 0.1 : 1})`; x.drawImage(img, 0, 0);
-  TINT.set(key, c); return c;
+  m[i] = c; return c;
 }
 // Ground is static, so it is rendered once into 512px tiles at three zoom levels and reused every frame
 const GT = new Map(); let gtFrame = 0;
+const gk = (q, tx, ty) => (q * 2) * 1e8 + (tx + 5000) * 1e4 + (ty + 5000); // GC: numeric tile keys instead of per-frame strings
 function drawGroundCached(ctx, s, ox, oy, view) {
   const q = s > 1.5 ? 2 : s > 0.55 ? 1 : 0.5, T = 512 / q, pad = 2; gtFrame++; gtBuilt = 0;
   const vx0 = view.x0 + 150, vx1 = view.x1 - 150, vy0 = view.y0 + 150, vy1 = Math.min(view.y1 - 1300, W.SIZE + 600);
   ctx.setTransform(s, 0, 0, s * TILT, ox, oy); ctx.imageSmoothingEnabled = true;
   for (let ty = Math.floor(vy0 / T); ty * T < vy1; ty++) for (let tx = Math.floor(vx0 / T); tx * T < vx1; tx++) {
-    const key = q + ':' + tx + ':' + ty; let t = GT.get(key);
+    const key = gk(q, tx, ty); let t = GT.get(key);
     if (!t || t.bad) {
-      if (gtBuilt >= 3) { const alt = GT.get((q === 1 ? 2 : 1) + ':' + tx + ':' + ty) || GT.get('0.5:' + Math.floor(tx * T / 1024) + ':' + Math.floor(ty * T / 1024)); if (alt && !alt.bad) { ctx.fillStyle = gtBase(); ctx.fillRect(tx * T, ty * T, T, T); } else { ctx.fillStyle = gtBase(); ctx.fillRect(tx * T, ty * T, T, T); } continue; } // spread tile work over frames
+      if (gtBuilt >= 3) { const alt = GT.get(gk(q === 1 ? 2 : 1, tx, ty)) || GT.get(gk(0.5, Math.floor(tx * T / 1024), Math.floor(ty * T / 1024))); if (alt && !alt.bad) { ctx.fillStyle = gtBase(); ctx.fillRect(tx * T, ty * T, T, T); } else { ctx.fillStyle = gtBase(); ctx.fillRect(tx * T, ty * T, T, T); } continue; } // spread tile work over frames
       gtBuilt++;
       // reuse the least recently used tile canvas instead of making new ones: iOS Safari has a hard total
       // canvas-memory cap and frees dropped canvases late, so churn eventually left new tiles blank (grey ground)

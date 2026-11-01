@@ -15,10 +15,12 @@ function P3(x, y, z) {
   const yc = v - hz * TILT * p.Fk, zc = Math.max(p.F * 0.05, p.F - p.Fk * v - hz * TILT);
   const X = p.F * u / zc, Y = p.F * yc / zc;
   const zr = Y / (1 + Y * p.k), f = 1 / (1 - zr * p.k);
-  return [p.ocx + X / f, p.ocy + zr];
+  const r = P3R[P3i]; P3i = (P3i + 1) & 255; r[0] = p.ocx + X / f; r[1] = p.ocy + zr; return r; // GC: ring of reused [x,y] pairs, every caller uses them immediately
 }
+const P3R = Array.from({ length: 256 }, () => [0, 0]); let P3i = 0;
 const is3D = o => !o.flat && !o.spr_flat && (o.type === 'office' || o.type === 'tower' || o.type === 'shop');
-function bStyle(o) {
+function bStyle(o) { if (o._sk === THEME && o._st) return o._st; o._sk = THEME; return (o._st = bStyle0(o)); } // GC: memoised per building
+function bStyle0(o) {
   if (THEME === 'village') { const D = bDims(o); return o.type === 'tower' ? { tex: 'f-church', tw: D.w, th: D.h, roof: '#5e6670' } : o.type === 'office' ? { tex: 'f-pub', tw: D.w, th: D.h, roof: '#55606b' } : { tex: 'f-cottage', tw: D.w, th: D.h, roof: o.hue < 0.5 ? '#e0a33a' : '#d0562e' }; }
   if (THEME === 'district' && o.type !== 'tower') { const D = bDims(o); if (o.hue > 0.72) return { tex: o.type === 'office' ? 'f-deco' : 'f-shopfront', tw: D.w, th: D.h, roof: '#2f6fd6' }; return { tex: o.type === 'office' ? (o.hue < 0.35 ? 'brick' : 'f-warehouse') : 'f-terrace', ...(o.type === 'office' && o.hue < 0.35 ? { tw: 70, th: 64 } : {}), tw: D.w, th: D.h, roof: o.hue < 0.5 ? '#3a7bd5' : '#d9542f', ...(o.type === 'office' && o.hue < 0.35 ? { tw: 70, th: 64 } : {}) }; }
   if (THEME === 'district') return o.type === 'tower' ? { tex: 'stone', tw: 56, th: 52, roof: '#e0a030' } : { tex: 'brick', tw: o.type === 'shop' ? 64 : 70, th: o.type === 'shop' ? 60 : 64, roof: o.hue < 0.5 ? '#3a7bd5' : '#d9542f' };
@@ -29,7 +31,8 @@ function bStyle(o) {
   const t = o.spr ? o.spr.slice(3) : (o.hue < 0.25 ? 'glass' : o.hue < 0.7 ? 'stone' : 'dark');
   return { tex: t, tw: t === 'glass' ? 60 : 56, th: t === 'glass' ? 58 : 52, roof: t === 'dark' ? '#5b4fc4' : '#e8763a' };
 }
-function bDims(o) {
+function bDims(o) { if (o._dk === THEME && o._dm) return o._dm; o._dk = THEME; return (o._dm = bDims0(o)); }
+function bDims0(o) {
   if (THEME === 'district' && o.type === 'office') return { w: o.w * 0.94, d: o.d * 0.8, h: Math.min(170, 110 + o.hue * 80) };
   if (THEME === 'village') { if (o.type === 'tower') return { w: 120, d: 120, h: 210 }; if (o.type === 'office') return { w: o.w * 0.8, d: o.d * 0.5, h: 110 }; return { w: o.w * 0.78, d: o.d * 0.6, h: 74 }; }
   if (o.type === 'shop') { o.bh = o.bh || Math.max(80, o.ht + 30 + ((o.hue * 11.7) % 1) * 70); return { w: o.w * (0.8 + ((o.hue * 5.3) % 1) * 0.16), d: o.d * (0.78 + ((o.hue * 9.1) % 1) * 0.18), h: o.bh }; }
@@ -37,19 +40,19 @@ function bDims(o) {
   const tall = o.spr ? o.ht : o.ht * 1.25, fw = 0.78 + ((o.hue * 7.3) % 1) * 0.2, fd = 0.7 + ((o.hue * 13.1) % 1) * 0.26;
   return { w: o.w * fw, d: o.d * fd, h: tall };
 }
-const pats = new Map();
+const pats = new Map(), RS3 = [0.25, 0.5, 0.75];
 function pat(ctx, name) { let p = pats.get(name); if (!p && TEX[name]) { p = ctx.createPattern(TEX[name], 'repeat'); pats.set(name, p); } return p; }
 
 // one wall: corners A->B on the floor, from z0 to z1, outward normal shade
 function wall(ctx, ax, ay, bx, by, z0, z1, st, shade, H) {
-  const len = Math.hypot(bx - ax, by - ay), T = TEX[st.tex], tex = pat(ctx, st.tex);
+  const len = hyp(bx - ax, by - ay), T = TEX[st.tex], tex = pat(ctx, st.tex);
   // whole tiles only, so every window sits fully inside the wall (no half windows hanging off edges)
-  const nx = Math.max(1, Math.round(len / st.tw)), ny = Math.max(1, Math.round(H / st.th)); st = { ...st, th: H / ny };
+  const nx = Math.max(1, Math.round(len / st.tw)), ny = Math.max(1, Math.round(H / st.th)); const sth = H / ny; // was a per-wall object spread
   const Tw = nx * T.width, strips = Math.max(2, Math.ceil((z1 - z0) / 40));
   for (let i = 0; i < strips; i++) {
     const za = z0 + (z1 - z0) * i / strips, zb = z0 + (z1 - z0) * (i + 1) / strips; // za bottom, zb top
     const TL = P3(ax, ay, zb), TR = P3(bx, by, zb), BL = P3(ax, ay, za), BR = P3(bx, by, za);
-    const ty0 = (H - zb) / st.th * T.height, ty1 = (H - za) / st.th * T.height;
+    const ty0 = (H - zb) / sth * T.height, ty1 = (H - za) / sth * T.height;
     const ax_ = (TR[0] - TL[0]) / Tw, ay_ = (TR[1] - TL[1]) / Tw, cx = (BL[0] - TL[0]) / (ty1 - ty0), cy = (BL[1] - TL[1]) / (ty1 - ty0);
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -57,14 +60,15 @@ function wall(ctx, ax, ay, bx, by, z0, z1, st, shade, H) {
     ctx.clip();
     if (tex) { ctx.setTransform(ax_, ay_, cx, cy, TL[0] - cx * ty0, TL[1] - cy * ty0); ctx.fillStyle = tex; ctx.fillRect(-2, ty0 - 2, Tw + 4, ty1 - ty0 + 4); ctx.setTransform(1, 0, 0, 1, 0, 0); }
     // lighting: per-face shade plus a little ambient occlusion near the street
-    const g = ctx.createLinearGradient(0, TL[1], 0, BL[1]);
-    const ao = za < 30 ? 0.18 : 0;
-    g.addColorStop(0, `rgba(10,14,28,${shade})`); g.addColorStop(1, `rgba(10,14,28,${shade + ao})`);
-    ctx.fillStyle = g; ctx.fillRect(Math.min(TL[0], BL[0]) - 2, Math.min(TL[1], TR[1]) - 2, Math.abs(TR[0] - TL[0]) + Math.abs(BL[0] - TL[0]) + 4, Math.max(BL[1], BR[1]) - Math.min(TL[1], TR[1]) + 4);
+    const ao = za < 30 ? 0.18 : 0, gy0 = TL[1], gh = BL[1] - TL[1];
+    const rx = Math.min(TL[0], BL[0]) - 2, ry = Math.min(TL[1], TR[1]) - 2, rw = Math.abs(TR[0] - TL[0]) + Math.abs(BL[0] - TL[0]) + 4, rh = Math.max(BL[1], BR[1]) - Math.min(TL[1], TR[1]) + 4;
+    if (Math.abs(gh) > 1e-3) { // GC: one cached unit gradient (0..1) per shade, stretched by the transform, instead of a new CanvasGradient per strip
+      ctx.fillStyle = shadeGrad(ctx, shade, ao); ctx.setTransform(1, 0, 0, gh, 0, gy0); ctx.fillRect(rx, (ry - gy0) / gh, rw, rh / gh); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    } else { ctx.fillStyle = shadeRGBA(shade); ctx.fillRect(rx, ry, rw, rh); }
     ctx.restore();
   }
 }
-function poly(ctx, pts, fill) { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); } // ref-video look: soft shaded faces, no outlines
+function poly(ctx, pts, fill) { ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); } // ref-video look: soft shaded faces, no outlines
 // solid box (roof plant rooms etc.)
 function box(ctx, x0, y0, x1, y1, z0, z1, col) {
   const c = [P3(x0, y0, z1), P3(x1, y0, z1), P3(x1, y1, z1), P3(x0, y1, z1)];
@@ -73,7 +77,10 @@ function box(ctx, x0, y0, x1, y1, z0, z1, col) {
   poly(ctx, [P3(x0, y1, z0), P3(x1, y1, z0), c[2], c[3]], shadeCol(col, 0.72));
   poly(ctx, c, col);
 }
-function shadeCol(hex, f) { const n = parseInt(hex.slice(1), 16); return `rgb(${(n >> 16) * f | 0},${((n >> 8) & 255) * f | 0},${(n & 255) * f | 0})`; }
+const SGRAD = new Map(); function shadeGrad(ctx, a, ao) { const key = a * 10 + ao; let g = SGRAD.get(key); if (!g) { g = ctx.createLinearGradient(0, 0, 0, 1); g.addColorStop(0, shadeRGBA(a)); g.addColorStop(1, shadeRGBA(a + ao)); SGRAD.set(key, g); } return g; }
+const SRGBA = new Map(); function shadeRGBA(a) { let c = SRGBA.get(a); if (!c) { c = `rgba(10,14,28,${a})`; SRGBA.set(a, c); } return c; }
+const SCOL = new Map(); function shadeCol(hex, f) { const m = SCOL.get(hex); let c = m && m.get(f); if (c) return c; c = shadeCol0(hex, f); if (m) m.set(f, c); else SCOL.set(hex, new Map([[f, c]])); return c; }
+function shadeCol0(hex, f) { const n = parseInt(hex.slice(1), 16); return `rgb(${(n >> 16) * f | 0},${((n >> 8) & 255) * f | 0},${(n & 255) * f | 0})`; }
 
 // sink lowers the whole building (used while it is being swallowed)
 function drawBuilding3D(ctx, o, sink = 0, ox = 0, oy = 0) {
@@ -87,7 +94,7 @@ function drawBuilding3D(ctx, o, sink = 0, ox = 0, oy = 0) {
   wall(ctx, x0, y1, x1, y1, zb, zt, st, 0.24, zt);                       // south face toward camera
   // crisp corner lines
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.strokeStyle = 'rgba(20,24,32,.55)'; ctx.lineWidth = Math.max(1, PJ.s * 1.2);
-  ctx.beginPath(); for (const [x, y] of [[x0, y1], [x1, y1]]) { const a = P3(x, y, zb), b = P3(x, y, zt); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); } ctx.stroke();
+  ctx.beginPath(); for (let c = 0; c < 2; c++) { const x = c ? x1 : x0, a = P3(x, y1, zb), b = P3(x, y1, zt); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); } ctx.stroke();
   // roof with parapet, plant room and (for the landmark) a spire
   const r = [P3(x0, y0, zt), P3(x1, y0, zt), P3(x1, y1, zt), P3(x0, y1, zt)];
   if (THEME === 'village' && o.type !== 'tower') { // pitched tiled roof, ridge east-west, plus a chimney
@@ -97,7 +104,7 @@ function drawBuilding3D(ctx, o, sink = 0, ox = 0, oy = 0) {
     if (PJ.camx > x1) poly(ctx, [P3(x1, y0, zt), P3(x1, y1, zt), P3(x1, ym, zr)], '#8f846f');
     box(ctx, x1 - D.w * 0.25, ym - 6, x1 - D.w * 0.25 + 12, ym + 6, zt + D.d * 0.2, zr + 16, '#8a5a44');
     poly(ctx, [P3(x0 - e, y1 + e, zt), P3(x1 + e, y1 + e, zt), P3(x1 + e, ym, zr), P3(x0 - e, ym, zr)], st.roof);
-    const rs = [0.25, 0.5, 0.75]; ctx.strokeStyle = 'rgba(40,20,10,.25)'; ctx.lineWidth = 1;
+    const rs = RS3; ctx.strokeStyle = 'rgba(40,20,10,.25)'; ctx.lineWidth = 1;
     ctx.beginPath(); for (const f of rs) { const a = P3(x0 - e, y1 + e + (ym - y1 - e) * f, zt + (zr - zt) * f), b = P3(x1 + e, y1 + e + (ym - y1 - e) * f, zt + (zr - zt) * f); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); } ctx.stroke();
     ctx.restore(); return;
   }
@@ -120,9 +127,10 @@ function drawBuilding3D(ctx, o, sink = 0, ox = 0, oy = 0) {
 }
 // projected screen box (offscreen coords) for see-through tests
 function bBounds(o) {
-  const D = bDims(o), xs = [], ys = [];
-  for (const x of [o.x - D.w / 2, o.x + D.w / 2]) for (const y of [o.y - D.d / 2, o.y + D.d / 2]) for (const z of [0, D.h]) { const p = P3(x, y, z); xs.push(p[0]); ys.push(p[1]); }
-  return { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
+  const D = bDims(o), bb = o._bb || (o._bb = { x0: 0, x1: 0, y0: 0, y1: 0 }); bb.x0 = bb.y0 = Infinity; bb.x1 = bb.y1 = -Infinity; // GC: no temp arrays/spreads
+  for (let i = 0; i < 8; i++) { const p = P3(i & 1 ? o.x + D.w / 2 : o.x - D.w / 2, i & 2 ? o.y + D.d / 2 : o.y - D.d / 2, i & 4 ? D.h : 0);
+    if (p[0] < bb.x0) bb.x0 = p[0]; if (p[0] > bb.x1) bb.x1 = p[0]; if (p[1] < bb.y0) bb.y0 = p[1]; if (p[1] > bb.y1) bb.y1 = p[1]; }
+  return bb;
 }
 // cast shadow of a box onto the floor: convex hull of footprint + footprint pushed by the sun (ground space)
 function buildingShadowPath(ctx, o) {

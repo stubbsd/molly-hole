@@ -9,8 +9,9 @@ const SKINS = [
   { id: 'gold', name: 'Molten Gold', cost: 0, coins: 60, img: 'k-gold', inner: 0.49, rim: ['#e8b923', '#fff1a8'] },
   { id: 'neon', name: 'Neon', cost: 0, coins: 90, img: 'k-neon', inner: 0.62, rim: ['#19ff9c', '#d0ffef'] },
 ];
+const THROAT = new Map(); let lastSkinId = null, lastSkin = null;
 function drawHole(ctx, x, y, R, skinId, t) { // simplified flat look: solid rim, thick outline, plain dark middle
-  const s = SKINS.find(k => k.id === skinId) || SKINS[0];
+  if (skinId !== lastSkinId) { lastSkinId = skinId; lastSkin = SKINS.find(k => k.id === skinId) || SKINS[0]; } const s = lastSkin;
   const rimW = Math.max(4, R * 0.16);
   ctx.save();
   const im = s.img && typeof SPR !== 'undefined' && SPR[s.img];
@@ -29,8 +30,8 @@ function drawHole(ctx, x, y, R, skinId, t) { // simplified flat look: solid rim,
     ctx.beginPath(); for (let i = 0; i < n; i++) { const a = a0 + i * 6.2832 / n; ctx.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); ctx.arc(x, y, rr, a, a + 0.22); } ctx.stroke();
   }
   ctx.fillStyle = s.rim[1]; ctx.beginPath(); ctx.arc(x, y + rimW * 0.25, R + rimW * 0.5, 0, 7); ctx.fill();
-  const g = ctx.createRadialGradient(x, y + R * 0.3, R * 0.1, x, y, R); g.addColorStop(0, '#240833'); g.addColorStop(0.7, s.inner || '#1a1030'); g.addColorStop(1, '#3b0f55');
-  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R - rimW * 0.05, 0, 7); ctx.fill();
+  let g = THROAT.get(s); if (!g) { g = ctx.createRadialGradient(0, 0.3, 0.1, 0, 0, 1); g.addColorStop(0, '#240833'); g.addColorStop(0.7, s.inner || '#1a1030'); g.addColorStop(1, '#3b0f55'); THROAT.set(s, g); } // GC: cached unit gradient
+  ctx.translate(x, y); ctx.scale(R, R); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, (R - rimW * 0.05) / R, 0, 7); ctx.fill();
   ctx.restore();
 }
 
