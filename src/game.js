@@ -58,45 +58,42 @@ function markDone(id, st) { save.done[id] = Math.max(save.done[id] || 0, st); pe
 
 // ---------- start map ----------
 const STOPS = [
-  { id: 'run', icon: '🏙️', mode: 'run' },
-  { id: 'order1', icon: '🧩', mode: 'order' },
-  { id: 'gift1', icon: '🎁', mode: 'bonus', gift: true },
-  { id: 'timed1', icon: '⏱️', mode: 'timed' },
-  { id: 'free', icon: '♾️', mode: 'free' },
-  { id: 'gift2', icon: '🎁', mode: 'bonus', gift: true },
-  { id: 'thorn', icon: '🏡', soon: true, world: '🌳' },
-  { id: 'district', icon: '🌉', soon: true },
-  { id: 'desert', icon: '🦕', soon: true, world: '🏝️' },
-  { id: 'moon', icon: '🌙', soon: true, world: '🚀' },
+  { id: 'run', px: 0.2246, py: 0.3958, icon: '🏙️', mode: 'run' },
+  { id: 'order1', px: 0.2979, py: 0.4983, icon: '🧩', mode: 'order' },
+  { id: 'gift1', px: 0.3984, py: 0.5122, icon: '🎁', mode: 'bonus', gift: true },
+  { id: 'timed1', px: 0.4932, py: 0.5469, icon: '⏱️', mode: 'timed' },
+  { id: 'free', px: 0.5859, py: 0.5417, icon: '♾️', mode: 'free' },
+  { id: 'gift2', px: 0.6719, py: 0.4479, icon: '🎁', mode: 'bonus', gift: true },
+  { id: 'thorn', px: 0.4102, py: 0.7257, icon: '🏡', soon: true, world: '🌳' },
+  { id: 'district', px: 0.2373, py: 0.7604, icon: '🌉', soon: true },
+  { id: 'desert', px: 0.8086, py: 0.6042, icon: '🦕', soon: true, world: '🏝️' },
+  { id: 'moon', px: 0.5156, py: 0.3264, icon: '🌙', soon: true, world: '🚀' },
 ];
 const stopOpen = i => !STOPS[i].soon && (i === 0 || !!save.done[STOPS[i - 1].id] || !!save.done[STOPS[i].id]);
-function stopPos(i, w) { const amp = Math.min(w * 0.28, 220); return { x: w / 2 + Math.sin(i * 1.15) * amp, y: 170 + i * 165 }; }
+function stopPos(i) { const inr = $('mapInner'); return { x: STOPS[i].px * inr.clientWidth, y: STOPS[i].py * inr.clientHeight }; }
 function buildMap() {
-  const inner = $('mapInner'), w = inner.clientWidth || innerWidth; inner.querySelectorAll('.stop,.world').forEach(e => e.remove());
-  inner.style.height = (stopPos(STOPS.length - 1, w).y + 200) + 'px';
-  let d = ''; for (let i = 0; i < STOPS.length; i++) { const p = stopPos(i, w); d += (i ? ' L' : 'M') + p.x + ' ' + p.y; }
-  $('mapPath').innerHTML = `<path d="${d}" stroke="rgba(255,255,255,.85)" stroke-width="14" stroke-dasharray="2 26" stroke-linecap="round"/>`;
+  const inner = $('mapInner'); inner.querySelectorAll('.stop').forEach(e => e.remove());
   let next = -1;
   STOPS.forEach((st, i) => {
-    const p = stopPos(i, w), open = stopOpen(i), b = document.createElement('button');
-    if (open && !save.done[st.id] && next < 0) next = i;
-    b.className = 'stop' + (st.gift ? ' gift' : '') + (open ? '' : ' locked') + (i === next ? ' next' : '');
-    b.style.left = p.x + 'px'; b.style.top = p.y + 'px';
-    b.innerHTML = st.icon + (open ? '' : '<span class="lk">🔒</span>') + (save.done[st.id] ? `<span class="st">${'★'.repeat(Math.min(3, save.done[st.id]))}</span>` : '');
-    b.addEventListener('pointerup', e => { e.stopPropagation(); Sfx.init(); if (!open) { Sfx.teeter(); b.animate([{ transform: 'rotate(-8deg)' }, { transform: 'rotate(8deg)' }, { transform: 'rotate(0)' }], 300); return; } pickStop(i); });
+    const open = stopOpen(i), b = document.createElement('button'), done = save.done[st.id];
+    if (open && !done && next < 0) next = i;
+    b.className = 'stop' + (st.gift ? ' gift' : '') + (open ? '' : ' locked') + (i === next ? ' next' : '') + (done ? ' done' : '');
+    b.style.left = (st.px * 100) + '%'; b.style.top = (st.py * 100) + '%';
+    b.innerHTML = '<span class="face">' + (open ? (st.gift ? '🎁' : st.icon) : '🔒') + '</span>' + (!open && st.soon ? `<span class="wb">${st.icon}</span>` : '') + (done && !st.gift ? `<span class="st">${'★'.repeat(Math.min(3, done))}</span>` : '');
+    b.addEventListener('pointerup', e => { e.stopPropagation(); Sfx.init(); if (!open) { Sfx.teeter(); b.animate([{ transform: 'rotate(-10deg)' }, { transform: 'rotate(10deg)' }, { transform: 'rotate(0)' }], 300); return; } pickStop(i); });
     inner.appendChild(b);
-    if (st.world) { const wl = document.createElement('div'); wl.className = 'world'; wl.textContent = st.world; wl.style.top = (p.y - 105) + 'px'; wl.style.left = (w - p.x) + 'px'; inner.appendChild(wl); }
   });
-  const at = Math.max(0, STOPS.findIndex(st => st.id === curStop)), tp = stopPos(at < 0 ? 0 : at, w);
-  const tok = $('mapToken'); tok.style.transition = 'none'; tok.style.left = tp.x + 'px'; tok.style.top = tp.y + 'px';
+  const at = Math.max(0, STOPS.findIndex(st => st.id === curStop)), tok = $('mapToken');
+  tok.style.transition = 'none'; tok.style.left = (STOPS[at].px * 100) + '%'; tok.style.top = (STOPS[at].py * 100) + '%';
   $('starCountMap').textContent = save.stars; $('coinCountMap').textContent = save.coins;
-  if (next >= 0) setTimeout(() => $('mapScroll').scrollTo({ top: Math.max(0, stopPos(next, w).y - innerHeight / 2), behavior: 'smooth' }), 50);
+  const f = STOPS[next >= 0 ? next : at];
+  requestAnimationFrame(() => { const sc = $('mapScroll'); sc.scrollLeft = Math.max(0, f.px * inner.clientWidth - sc.clientWidth / 2); });
 }
 let picking = false;
 function pickStop(i) {
   if (picking) return; picking = true; Sfx.tap();
-  const p = stopPos(i, $('mapInner').clientWidth || innerWidth), tok = $('mapToken');
-  tok.style.transition = ''; tok.style.left = p.x + 'px'; tok.style.top = p.y + 'px';
+  const tok = $('mapToken');
+  tok.style.transition = ''; tok.style.left = (STOPS[i].px * 100) + '%'; tok.style.top = (STOPS[i].py * 100) + '%';
   curStop = STOPS[i].id;
   setTimeout(() => { picking = false; startGame(STOPS[i].mode); }, 800);
 }

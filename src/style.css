@@ -54,16 +54,19 @@ svg{width:55%;height:55%;fill:#fff;stroke:#fff}
 #orderStrip .it.now{opacity:1;background:rgba(255,190,60,.35);box-shadow:0 0 0 4px #ffb02e;animation:pulse 1s infinite}
 #orderStrip .it.done{opacity:1;background:rgba(80,220,120,.4)}
 #orderStrip .it.done b{background:#3bd16f;color:#fff}
-#map{justify-content:flex-start;background:linear-gradient(180deg,#5aa8e8,#8fd0f5 60%,#bfe6c0)}
-#mapScroll{position:absolute;inset:0;overflow-y:auto;touch-action:pan-y;-webkit-overflow-scrolling:touch}
-#mapInner{position:relative;width:100%;}
-#mapPath{position:absolute;left:0;top:0;width:100%;height:100%;fill:none;stroke:none}
-.stop{position:absolute;width:120px;height:120px;margin:-60px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#e6eef7);box-shadow:0 8px 0 #9fb3c8,0 12px 24px rgba(0,0,0,.25);font-size:60px;display:flex;align-items:center;justify-content:center}
-.stop.gift{background:radial-gradient(circle at 35% 30%,#fff6cf,#ffd25a);box-shadow:0 8px 0 #c99a26,0 12px 24px rgba(0,0,0,.25)}
-.stop.locked{filter:grayscale(1) brightness(.85)}
-.stop .lk{position:absolute;right:-6px;bottom:-6px;font-size:40px;filter:none}
-.stop .st{position:absolute;left:50%;top:-34px;transform:translateX(-50%);font-size:30px;color:#ffcf3a;text-shadow:0 2px 0 #9a6b00;white-space:nowrap}
-.stop.next{animation:pulse 1.1s infinite}
-.token{position:absolute;width:70px;height:70px;margin:-35px;border-radius:50%;background:radial-gradient(#000 58%,#1f8fff 64%,#9fe0ff 69%,transparent 72%);transition:left .7s ease-in-out,top .7s ease-in-out;z-index:3;pointer-events:none;filter:drop-shadow(0 6px 6px rgba(0,0,0,.4))}
-.world{position:absolute;left:50%;transform:translateX(-50%);font-size:44px;opacity:.9}
+#map{justify-content:flex-start;background:#cfe3f2}
+#mapScroll{position:absolute;inset:0;overflow-x:auto;overflow-y:hidden;touch-action:pan-x;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+#mapScroll::-webkit-scrollbar{display:none}
+#mapInner{position:relative;height:100%;width:max(100vw,177.78vh);aspect-ratio:16/9;background:url(../assets/map/start-map.webp) center/100% 100% no-repeat;--s:max(64px,min(7.6vh*1.7778,120px))}
+#mapPath{display:none}
+.stop{position:absolute;width:var(--s);height:calc(var(--s)*.78);margin:calc(var(--s)*-.39) 0 0 calc(var(--s)*-.5);border-radius:50%;padding:0;border:0;background:radial-gradient(ellipse at 50% 35%,#7d6c58,#4d4033 70%);box-shadow:0 calc(var(--s)*.09) 0 #2f271f,0 calc(var(--s)*.16) calc(var(--s)*.2) rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}
+.stop .face{width:84%;height:80%;margin-top:-8%;border-radius:50%;background:radial-gradient(circle at 38% 30%,#fff3b0,#f6c934 45%,#c48a12 80%);box-shadow:inset 0 -5px 0 #9a6a07,inset 0 3px 0 #fff6c8,0 0 0 3px #b9851a;display:flex;align-items:center;justify-content:center;font-size:calc(var(--s)*.4);text-shadow:0 2px 0 rgba(0,0,0,.2)}
+.stop.gift .face{background:radial-gradient(circle at 38% 30%,#fff,#ffd8ea 45%,#ff8ab8 85%);box-shadow:inset 0 -5px 0 #c4507f,inset 0 3px 0 #fff,0 0 0 3px #d9608f;font-size:calc(var(--s)*.5)}
+.stop.locked .face{background:radial-gradient(circle at 38% 30%,#d8dde3,#8e959e 55%,#5c626a);box-shadow:inset 0 -5px 0 #3e434a,inset 0 3px 0 #eef1f4,0 0 0 3px #4a5058;font-size:calc(var(--s)*.38)}
+.stop .wb{position:absolute;right:-18%;top:-34%;font-size:calc(var(--s)*.38);filter:drop-shadow(0 3px 3px rgba(0,0,0,.4))}
+.stop .st{position:absolute;left:50%;top:calc(var(--s)*-.42);transform:translateX(-50%);font-size:calc(var(--s)*.28);color:#ffd23a;-webkit-text-stroke:1.5px #8a5a00;white-space:nowrap;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
+.stop.next .face{animation:pulse 1.1s infinite}
+.stop.next::after{content:'';position:absolute;inset:-14%;border-radius:50%;border:4px solid #fff;opacity:.8;animation:pulse 1.1s infinite}
+.token{position:absolute;width:calc(var(--s)*.8);height:calc(var(--s)*.8);margin:calc(var(--s)*-.62) 0 0 calc(var(--s)*-.4);border-radius:50%;background:radial-gradient(#000 52%,#0b3c8f 58%,#3fb6ff 64%,#bfefff 69%,transparent 73%);box-shadow:0 0 calc(var(--s)*.35) #4cc3ff,0 0 calc(var(--s)*.12) #fff inset;transition:left .7s ease-in-out,top .7s ease-in-out;z-index:3;pointer-events:none;animation:tokSpin 2s linear infinite}
+@keyframes tokSpin{50%{box-shadow:0 0 calc(var(--s)*.5) #7ad6ff,0 0 calc(var(--s)*.12) #fff inset}}
 .mapPills{position:absolute;display:flex;gap:12px}
