@@ -71,3 +71,10 @@ svg{width:55%;height:55%;fill:#fff;stroke:#fff}
 .token{position:absolute;width:calc(var(--s)*.8);height:calc(var(--s)*.8);margin:calc(var(--s)*-.62) 0 0 calc(var(--s)*-.4);border-radius:50%;background:radial-gradient(#000 52%,#0b3c8f 58%,#3fb6ff 64%,#bfefff 69%,transparent 73%);box-shadow:0 0 calc(var(--s)*.35) #4cc3ff,0 0 calc(var(--s)*.12) #fff inset;transition:left .7s ease-in-out,top .7s ease-in-out;z-index:3;pointer-events:none;animation:tokSpin 2s linear infinite}
 @keyframes tokSpin{50%{box-shadow:0 0 calc(var(--s)*.5) #7ad6ff,0 0 calc(var(--s)*.12) #fff inset}}
 .mapPills{position:absolute;display:flex;gap:12px}
+/* Painted stop art (v3): generated stone plinths replace code-drawn discs */
+.stop{height:calc(var(--s)*.95);margin:calc(var(--s)*-.6) 0 0 calc(var(--s)*-.5);border-radius:0;background:url(../assets/map/stop-gold.webp) center bottom/contain no-repeat;filter:drop-shadow(0 calc(var(--s)*.05) calc(var(--s)*.06) rgba(25,35,15,.45))}
+.stop.locked{background-image:url(../assets/map/stop-locked.webp)}
+.stop.gift{background-image:url(../assets/map/stop-gift.webp);height:var(--s);margin-top:calc(var(--s)*-.66)}
+.stop .face,.stop.gift .face,.stop.locked .face{position:absolute;left:18%;top:23%;width:64%;height:46%;margin:0;background:none;box-shadow:none;border-radius:50%;font-size:calc(var(--s)*.34);text-shadow:none;filter:drop-shadow(0 2px 2px rgba(90,55,10,.45)) saturate(.9)}
+.stop.locked .face,.stop.gift .face{visibility:hidden}
+.stop.next::after{inset:10% 4% 18%}
