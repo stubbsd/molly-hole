@@ -520,8 +520,8 @@ function render() {
     for (const p of pops) { ctx.globalAlpha = 1 - p.t / 0.9; lab(p.txt, p.x + hole.R * 0.5, p.y * TILT - hole.R * TILT - hole.R * 0.45 - fs - p.t * 60, '#ffffff'); }
     ctx.globalAlpha = 1;
     const bw = hole.R * 1.4, bh = Math.max(7, fs * 0.38), by = hyy + hole.R * TILT + hole.R * 0.35, fr = hole.level >= 8 ? 1 : Math.min(1, hole.pts / LEVEL_NEED[hole.level]);
-    ctx.fillStyle = 'rgba(60,30,90,.75)'; ctx.beginPath(); ctx.roundRect(hx - bw / 2, by, bw, bh, bh / 2); ctx.fill();
-    ctx.fillStyle = '#ffd23a'; ctx.beginPath(); ctx.roundRect(hx - bw / 2 + 2, by + 2, Math.max(bh - 4, (bw - 4) * fr), bh - 4, (bh - 4) / 2); ctx.fill();
+    ctx.fillStyle = 'rgba(60,30,90,.75)'; roundRect(ctx, hx - bw / 2, by, bw, bh, bh / 2); ctx.fill();
+    ctx.fillStyle = '#ffd23a'; roundRect(ctx, hx - bw / 2 + 2, by + 2, Math.max(bh - 4, (bw - 4) * fr), bh - 4, (bh - 4) / 2); ctx.fill();
   }
   // perspective warp onto the screen
   const W2 = cv.width, H2 = cv.height, cy = H2 * 0.5, ocx = ow / 2, ocy = oh * OCY, k = PK / H2, step = 6;
