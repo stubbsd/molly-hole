@@ -36,9 +36,9 @@ function startGame(m, world) {
   Sfx.init(); Sfx.startMusic(); newWorld();
   mode = m; playing = true; paused = false; ending = 0; runStars = 0; runCoins = 0; orderIdx = 0; ringT = 0; ringDone = false;
   // start on a road near a corner of the central area
-  const p = W.PITCH * 2 + W.ROAD / 2, lv = m === 'order' ? 5 : m === 'bonus' ? 2 : 1;
-  Object.assign(hole, { x: p, y: p, tx: p, ty: p, R: HOLE_R[lv], level: lv, pts: 0, pulse: 0 });
-  cam.x = p; cam.y = p;
+  const p = W.PITCH * 2 + W.ROAD / 2, lv = m === 'order' ? 5 : m === 'bonus' ? 2 : 1, sx = city.start ? city.start.x : p, sy = city.start ? city.start.y : p;
+  Object.assign(hole, { x: sx, y: sy, tx: sx, ty: sy, R: HOLE_R[lv], level: lv, pts: 0, pulse: 0 });
+  cam.x = sx; cam.y = sy;
   if (m === 'bonus') spawnPickups(p);
   $('growWrap').classList.toggle('hidden', m === 'order');
   $('orderStrip').classList.toggle('hidden', m !== 'order'); if (m === 'order') buildStrip();
@@ -114,6 +114,11 @@ function buildStrip() {
 }
 const orderMatch = o => o.type === ORDER[orderIdx] || (ORDER[orderIdx] === 'car' && o.type === 'taxi');
 function spawnPickups(p) {
+  if (city.organic) { // coins strung along the winding tracks, gifts every so often
+    let n = 0; for (const l of city.lanes) if (l.sgn > 0) for (let d = 0; d < l.L; d += 44) { const q = lanePt(l, d, 0); if (q.x < 60 || q.y < 60 || q.x > W.SIZE - 60 || q.y > W.SIZE - 60) continue; n++;
+      objs.push(n % 10 ? { type: 'coin', x: q.x, y: q.y, size: 1, r: 7, state: 'idle', ft: 0, wob: 0 } : { type: 'gift', x: q.x, y: q.y, size: 2, r: 14, state: 'idle', ft: 0, wob: 0, hue: n % 4 }); }
+    return;
+  }
   // a golden trail of coins along the nearby roads, with gift boxes at the junctions
   for (let gx = -2; gx <= 2; gx++) for (let gy = -2; gy <= 2; gy++) {
     const jx = p + gx * W.PITCH, jy = p + gy * W.PITCH; if (jx < 60 || jy < 60 || jx > W.SIZE - 60 || jy > W.SIZE - 60) continue;
@@ -228,7 +233,7 @@ function update(dt) {
     if (v.state !== 'idle') continue;
     const near = playing && Math.hypot(v.x - hole.x, v.y - hole.y) < hole.R + 140;
     v.along += v.speed * dt * (near ? 0.35 : 1);
-    if (v.along < -100 || v.along > W.SIZE + 100) v.along = v.speed > 0 ? -90 : W.SIZE + 90;
+    if (v.lane.dir !== 'p' && (v.along < -100 || v.along > W.SIZE + 100)) v.along = v.speed > 0 ? -90 : W.SIZE + 90;
     placeVehicle(v);
   }
   updatePeds(dt); updateBirds(dt);
@@ -350,7 +355,8 @@ function updatePeds(dt) {
   for (const p of peds) {
     const L = p.s - 2 * e; p.t = (p.t + p.sp * dt * (p.run > 0 ? 2.5 : 1) + 4) % 4;
     const side = Math.floor(p.t), f = p.t - side; let px, py;
-    if (side === 0) { px = p.bx + e + f * L; py = p.by + e; } else if (side === 1) { px = p.bx + e + L; py = p.by + e + f * L; }
+    if (p.ell) { px = p.cx + Math.cos(p.t / 4 * 6.283) * p.rx; py = p.cy + Math.sin(p.t / 4 * 6.283) * p.ry; }
+    else if (side === 0) { px = p.bx + e + f * L; py = p.by + e; } else if (side === 1) { px = p.bx + e + L; py = p.by + e + f * L; }
     else if (side === 2) { px = p.bx + e + L - f * L; py = p.by + e + L; } else { px = p.bx + e; py = p.by + e + L - f * L; }
     p.ox = p.ox || 0; p.oy = p.oy || 0;
     if (playing) {

@@ -27,13 +27,13 @@ const LEVEL_NEED = [0, 8, 50, 180, 420, 750, 1150, 1600, 1e9]; // ~3-4 min City 
 let THEME = 'city';
 const THEMES = {
   city:     { kinds: [['highrise', .45], ['office', .6], ['shops', .85], ['plaza', 1]], furn: [['lamp', .22], ['bin', .42], ['cone', .58], ['tree', .66], ['bench', .70]], veh: [['car', .62], ['taxi', .82], ['bus', 1]], spr: {}, marks: true },
-  district: { kinds: [['shops', .45], ['plaza', .7], ['office', .85], ['highrise', 1]], furn: [['lamp', .25], ['bin', .45], ['tree', .62], ['bench', .72]], veh: [['car', .55], ['taxi', .85], ['bus', 1]], spr: {}, marks: true, canal: true },
-  village:  { kinds: [['shops', .5], ['office', .66], ['plaza', .86], ['farm', 1]], furn: [['tree', .2], ['bin', .3], ['cone', .45], ['bench', .52], ['lamp', .58]], veh: [['car', .5], ['tractor', .78], ['bus', 1]], spr: { bin: ['v-postbox', 16], cone: ['v-flowers', 30], kiosk: ['v-hay', 80] }, vspr: { tractor: ['v-tractor', 52] } },
-  desert:   { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['beach', 1]], furn: [['tree', .22], ['bin', .36], ['cone', .46], ['bench', .52]], veh: [['raptor', .5], ['stego', .78], ['trike', 1]], spr: { bin: ['d-crate', 22], cone: ['m-rock', 14], bench: ['d-boat', 44], tree: ['d-palm', 52], kiosk: ['d-lighthouse', 60], shop: ['d-hut', 125], office: ['d-volcano', 230], tower: ['d-brachio', 300] }, vspr: { raptor: ['d-raptor', 58], stego: ['d-stego', 100], trike: ['d-trike', 104] }, flat: true },
-  moon:     { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['craters', 1]], furn: [['cone', .2], ['bin', .34], ['tree', .44], ['bench', .54]], veh: [['rover', .55], ['shuttle', 1]], spr: { cone: ['m-rock', 16], bin: ['m-crate', 22], bench: ['m-solar', 38], tree: ['m-dish', 44], kiosk: ['m-dome', 90], shop: ['m-hab', 150], office: ['m-greenhouse', 210], tower: ['m-rocket', 170] }, vspr: { rover: ['m-rover', 60], shuttle: ['m-shuttle', 110] }, flat: true },
+  district: { kinds: [['shops', .45], ['plaza', .7], ['office', .85], ['highrise', 1]], furn: [['lamp', .25], ['bin', .45], ['tree', .62], ['bench', .72]], veh: [['car', .5], ['taxi', .72], ['tram', 1]], vspr: { tram: ['b-tram', 112, 1], nboat: ['b-nboat', 124] }, spr: {}, marks: true, canal: true },
+  village:  { kinds: [['shops', .5], ['office', .66], ['plaza', .86], ['farm', 1]], furn: [['tree', .2], ['bin', .3], ['cone', .45], ['bench', .52], ['lamp', .58]], veh: [['car', .45], ['tractor', .75], ['vbus', 1]], spr: { bin: ['v-postbox', 16], cone: ['v-flowers', 30], kiosk: ['v-hay', 80] }, vspr: { tractor: ['v-tractor', 52], vbus: ['v-bus', 104, 1] }, organic: { w: 62, col: '#bfa679', edge: '#8f7a52' } },
+  desert:   { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['beach', 1]], furn: [['tree', .22], ['bin', .36], ['cone', .46], ['bench', .52]], veh: [['raptor', .5], ['stego', .78], ['trike', 1]], spr: { bin: ['d-crate', 22], cone: ['m-rock', 14], bench: ['d-boat', 44], tree: ['d-palm', 52], kiosk: ['d-lighthouse', 60], shop: ['d-hut', 125], office: ['d-volcano', 230], tower: ['d-brachio', 300] }, vspr: { raptor: ['d-raptor', 58], stego: ['d-stego', 100], trike: ['d-trike', 104] }, flat: true, organic: { w: 70, col: '#f2e2b4', edge: '#cdb27a' } },
+  moon:     { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['craters', 1]], furn: [['cone', .2], ['bin', .34], ['tree', .44], ['bench', .54]], veh: [['rover', .55], ['shuttle', 1]], spr: { cone: ['m-rock', 16], bin: ['m-crate', 22], bench: ['m-solar', 38], tree: ['m-dish', 44], kiosk: ['m-dome', 90], shop: ['m-hab', 150], office: ['m-greenhouse', 210], tower: ['m-rocket', 170] }, vspr: { rover: ['m-rover', 60], shuttle: ['m-shuttle', 110] }, flat: true, organic: { w: 62, col: '#6c6f78', edge: '#4f525a', tyre: 1 } },
 };
 // moving things: size class + body for each themed vehicle
-const VEH = { car: ['car', 48, 24], taxi: ['taxi', 48, 22], bus: ['bus', 96, 28], tractor: ['car', 48, 26], raptor: ['car', 48, 22], stego: ['bus', 90, 30], trike: ['bus', 90, 30], rover: ['car', 50, 26], shuttle: ['bus', 96, 30] };
+const VEH = { car: ['car', 48, 24], taxi: ['taxi', 48, 22], bus: ['bus', 96, 28], tractor: ['car', 48, 26], raptor: ['car', 48, 22], stego: ['bus', 90, 30], trike: ['bus', 90, 30], rover: ['car', 50, 26], shuttle: ['bus', 96, 30], vbus: ['bus', 96, 28], tram: ['bus', 100, 28], nboat: ['bus', 110, 30] };
 function setTheme(t) { THEME = THEMES[t] ? t : 'city'; PAT = null; }
 const TH = () => THEMES[THEME];
 function pick(list, v) { for (const [k, p] of list) if (v < p) return k; return null; }
@@ -54,14 +54,16 @@ function buildCity(seed = 7) {
   const mid = Math.floor(N / 2);
   for (let bx = 0; bx < N; bx++) for (let by = 0; by < N; by++) {
     const x0 = bx * P + RD, y0 = by * P + RD, cx = x0 + inner / 2, cy = y0 + inner / 2;
-    let kind;
+    let kind; const ORG = TH().organic, i0 = objs.length, k0 = birds.length;
+    const jx = ORG ? (R() - 0.5) * 130 : 0, jy = ORG ? (R() - 0.5) * 130 : 0;
     if (bx === mid && by === mid) kind = 'tower';
     else if ((bx + by * 3) % 5 === 1) kind = 'park';
     else kind = pick(TH().kinds, R());
     blocks.push({ x0, y0, s: inner, kind });
     // pavement furniture on all four edges
     const e = W.PAVE / 2;
-    for (let k = 26; k < inner - 20; k += 36) {
+    if (ORG) for (let i = 0; i < 12; i++) { const f = pick(TH().furn, R()); if (f) objs.push(makeObj(f, x0 + 20 + R() * (inner - 40), y0 + 20 + R() * (inner - 40), { hue: R() })); }
+    else for (let k = 26; k < inner - 20; k += 36) {
       const pts = [[x0 + k, y0 + e], [x0 + k, y0 + inner - e], [x0 + e, y0 + k], [x0 + inner - e, y0 + k]];
       for (const [px, py] of pts) {
         const f = pick(TH().furn, R());
@@ -104,30 +106,69 @@ function buildCity(seed = 7) {
       for (let i = 0; i < 4; i++) birds.push({ kind: THEME === 'moon' ? 'alien' : 'duck', x: cx + 30 + (R() - 0.5) * 80, y: cy + 20 + (R() - 0.5) * 50, hx: cx + 30, hy: cy + 20, fly: 0, vx: 0, vy: 0 });
       if (R() < 0.6) birds.push({ kind: 'dog', x: a + 40, y: b + 40, hx: cx, hy: cy, fly: 0, vx: 0, vy: 0 });
     }
-    // pedestrians walking around this block's pavement
+    const B = blocks[blocks.length - 1];
+    if (ORG) { // organic clearing: nudge everything off the grid and give the block a soft blob outline
+      const lm = kind === 'tower';
+      for (let i = i0; i < objs.length; i++) if (!objs[i].landmark) { objs[i].x += jx + (R() - 0.5) * 30; objs[i].y += jy + (R() - 0.5) * 30; }
+      for (let i = k0; i < birds.length; i++) { birds[i].x += jx; birds[i].y += jy; birds[i].hx += jx; birds[i].hy += jy; }
+      if (B.pond) { B.pond.x += jx; B.pond.y += jy; }
+      B.cx = (lm ? cx : cx + jx); B.cy = (lm ? cy : cy + jy); B.rx = inner * (0.46 + R() * 0.1); B.ry = inner * (0.42 + R() * 0.1); B.rot = (R() - 0.5) * 0.8; B.org = true;
+    }
+    // pedestrians walking around this block's pavement (organic: round the clearing)
     const nP = 2 + Math.floor(R() * 3);
-    for (let i = 0; i < nP; i++) peds.push({ bx: x0, by: y0, s: inner, t: R() * 4, sp: (0.04 + R() * 0.03) * (R() < 0.5 ? 1 : -1), x: 0, y: 0, col: Math.floor(R() * 6), run: 0 });
+    for (let i = 0; i < nP; i++) peds.push({ ell: !!ORG, cx: B.cx, cy: B.cy, rx: (B.rx || 0) + 18, ry: (B.ry || 0) + 18, bx: x0, by: y0, s: inner, t: R() * 4, sp: (0.04 + R() * 0.03) * (R() < 0.5 ? 1 : -1), x: 0, y: 0, col: Math.floor(R() * 6), run: 0 });
   }
+  if (TH().organic) return organicPaths({ objs, peds, birds, blocks, R });
   // traffic: lanes on every road
   const lanes = [];
   for (let k = 0; k <= N; k++) {
     const o = k * P;
     lanes.push({ dir: 'h', pos: o + 32, sgn: 1 }, { dir: 'h', pos: o + 78, sgn: -1 }, { dir: 'v', pos: o + 32, sgn: -1 }, { dir: 'v', pos: o + 78, sgn: 1 });
   }
+  if (TH().canal) for (const l of lanes) if (l.dir === 'h' && l.pos > 2 * P && l.pos < 2 * P + RD) l.canal = true;
   return { objs, peds, birds, blocks, lanes, R };
+}
+// winding lanes / dune tracks / rover loops instead of a street grid
+function pathLane(pts, closed, sgn) {
+  const cum = [0]; for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  return { dir: 'p', pts, cum, L: cum[cum.length - 1], closed, sgn };
+}
+function organicPaths(c) {
+  const S = W.SIZE, C = S / 2, R = c.R, paths = [], ph = R() * 6;
+  for (const [rr, a, b] of [[0.2, 0.14, 0.05], [0.37, 0.1, 0.07]]) { // two wobbly loops round the landmark
+    const pts = []; for (let i = 0; i <= 140; i++) { const t = i / 140 * Math.PI * 2, r = S * rr * (1 + a * Math.sin(3 * t + ph) + b * Math.sin(5 * t + ph * 2)); pts.push([C + Math.cos(t) * r, C + Math.sin(t) * r]); }
+    paths.push({ pts, closed: true });
+  }
+  const mk = (x0, y0, x1, y1, amp, f) => { const pts = []; for (let i = 0; i <= 90; i++) { const u = i / 90, nx = -(y1 - y0), ny = x1 - x0, nl = Math.hypot(nx, ny), w = amp * Math.sin(u * Math.PI * f + ph) ; pts.push([x0 + (x1 - x0) * u + nx / nl * w, y0 + (y1 - y0) * u + ny / nl * w]); } return { pts, closed: false }; };
+  paths.push(mk(-200, S * 0.18, S + 200, S * 0.72, 220, 3), mk(S * 0.2, S + 200, S * 0.86, -200, 200, 2.5), mk(-200, S * 0.9, S * 0.55, -200, 160, 2));
+  const lanes = []; for (const p of paths) lanes.push(pathLane(p.pts, p.closed, 1), pathLane(p.pts, p.closed, -1));
+  // clear anything sitting on a track
+  const hw = TH().organic.w / 2 + 6, G = new Map(), key = (x, y) => (Math.floor(x / 120) * 1000 + Math.floor(y / 120));
+  for (const l of lanes) for (let d = 0; d < l.L; d += 14) { const q = lanePt(l, d, 0); const k = key(q.x, q.y); (G.get(k) || G.set(k, []).get(k)).push(q); }
+  const near = (x, y, r) => { for (let gx = -1; gx <= 1; gx++) for (let gy = -1; gy <= 1; gy++) for (const q of G.get(key(x + gx * 120, y + gy * 120)) || []) if (Math.hypot(q.x - x, q.y - y) < r) return true; return false; };
+  c.objs = c.objs.filter(o => o.landmark || !near(o.x, o.y, hw + (o.w ? Math.max(o.w, o.d) * 0.45 : o.r * 0.7)));
+  const st = lanePt(lanes[2], lanes[2].L * 0.08, 0);
+  return Object.assign(c, { lanes, paths, organic: true, start: { x: st.x, y: st.y } });
+}
+function lanePt(l, s, off) {
+  s = ((s % l.L) + l.L) % l.L; let lo = 0, hi = l.cum.length - 1;
+  while (hi - lo > 1) { const m = (lo + hi) >> 1; if (l.cum[m] <= s) lo = m; else hi = m; }
+  const a = l.pts[lo], b = l.pts[hi], u = (s - l.cum[lo]) / Math.max(1e-6, l.cum[hi] - l.cum[lo]), dx = b[0] - a[0], dy = b[1] - a[1], n = Math.hypot(dx, dy) || 1;
+  return { x: a[0] + dx * u - dy / n * off, y: a[1] + dy * u + dx / n * off, ang: Math.atan2(dy, dx) };
 }
 
 function spawnVehicle(city, initial) {
   const R = city.R, lane = city.lanes[Math.floor(R() * city.lanes.length)];
-  const kind = pick(TH().veh, R()), [type, len, wid] = VEH[kind], vs = (TH().vspr || {})[kind];
-  const along = initial ? R() * W.SIZE : (lane.sgn > 0 ? -60 : W.SIZE + 60);
-  const slow = THEME === 'desert' ? 0.55 : THEME === 'village' && kind === 'tractor' ? 0.5 : 1;
+  const kind = lane.canal ? 'nboat' : pick(TH().veh, R()), [type, len, wid] = VEH[kind], vs = (TH().vspr || {})[kind];
+  const along = lane.dir === 'p' ? R() * lane.L : initial ? R() * W.SIZE : (lane.sgn > 0 ? -60 : W.SIZE + 60);
+  const slow = lane.canal ? 0.4 : THEME === 'desert' ? 0.55 : THEME === 'village' && kind === 'tractor' ? 0.5 : 1;
   const speed = (type === 'bus' ? 55 : 80 + R() * 40) * slow * lane.sgn;
   const o = makeObj(type, 0, 0, { lane, along, speed, moving: true, hue: R(), len, wid, kind });
-  delete o.spr; delete o.flat; if (vs) { o.vspr = vs[0]; o.sw = vs[1]; } if (kind === 'shuttle') o.hover = 1;
+  delete o.spr; delete o.flat; if (vs) { o.vspr = vs[0]; o.sw = vs[1]; o.vleft = !!vs[2]; } if (kind === 'shuttle') o.hover = 1;
   placeVehicle(o); return o;
 }
 function placeVehicle(o) {
+  if (o.lane.dir === 'p') { const q = lanePt(o.lane, o.along, o.lane.sgn * 16); o.x = q.x; o.y = q.y; o.angle = q.ang + (o.speed < 0 ? Math.PI : 0); return; }
   if (o.lane.dir === 'h') { o.x = o.along; o.y = o.lane.pos; o.angle = o.lane.sgn > 0 ? 0 : Math.PI; }
   else { o.y = o.along; o.x = o.lane.pos; o.angle = o.lane.sgn > 0 ? Math.PI / 2 : -Math.PI / 2; }
 }
@@ -136,7 +177,7 @@ function placeVehicle(o) {
 // Angled camera: the ground is foreshortened by TILT; buildings/props are upright sprites.
 const TILT = 0.74;
 const SPR = {};
-const SPR_NAMES = ['v-hay', 'v-postbox', 'v-flowers', 'v-tractor', 'd-palm', 'd-crate', 'd-hut', 'd-boat', 'd-raptor', 'd-trike', 'd-stego', 'd-brachio', 'd-lighthouse', 'd-volcano', 'm-rock', 'm-crate', 'm-dish', 'm-solar', 'm-rover', 'm-shuttle', 'm-dome', 'm-rocket', 'm-hab', 'm-greenhouse', 'hr-glass', 'hr-stone', 'hr-dark', 'car-side', 'car-front', 'car-rear', 'taxi-side', 'taxi-front', 'taxi-rear', 'bus-side', 'bus-front', 'bus-rear', 'office-glass', 'office-stone', 'office-grey', 'tower', 'shop', 'kiosk', 'tree', 'car', 'taxi', 'bus', 'bin', 'lamp', 'bench', 'cone'];
+const SPR_NAMES = ['v-bus', 'b-tram', 'b-nboat', 'v-hay', 'v-postbox', 'v-flowers', 'v-tractor', 'd-palm', 'd-crate', 'd-hut', 'd-boat', 'd-raptor', 'd-trike', 'd-stego', 'd-brachio', 'd-lighthouse', 'd-volcano', 'm-rock', 'm-crate', 'm-dish', 'm-solar', 'm-rover', 'm-shuttle', 'm-dome', 'm-rocket', 'm-hab', 'm-greenhouse', 'hr-glass', 'hr-stone', 'hr-dark', 'car-side', 'car-front', 'car-rear', 'taxi-side', 'taxi-front', 'taxi-rear', 'bus-side', 'bus-front', 'bus-rear', 'office-glass', 'office-stone', 'office-grey', 'tower', 'shop', 'kiosk', 'tree', 'car', 'taxi', 'bus', 'bin', 'lamp', 'bench', 'cone'];
 function loadSprites() {
   return Promise.all(SPR_NAMES.map(n => new Promise(res => { const i = new Image(); i.onload = () => { SPR[n] = i; res(); }; i.onerror = res; i.src = 'assets/sprites/' + n + '.png'; })));
 }
@@ -176,6 +217,7 @@ function craters(x, s) {
 function drawGround(ctx, city, view) {
   if (!PAT) makePatterns(ctx);
   const S = W.SIZE;
+  if (city.organic) return drawOrganicGround(ctx, city, view);
   ctx.fillStyle = PAT.asph; ctx.fillRect(-600, -600, S + 1200, S + 1200);
   for (let k = 0; k <= W.N; k++) {
     const o = k * W.PITCH;
@@ -197,12 +239,48 @@ function drawGround(ctx, city, view) {
     ctx.fillStyle = b.kind === 'park' || b.kind === 'green' || b.field ? PAT.grass : b.kind === 'plaza' || b.kind === 'tower' ? PAT.plaza : PAT.pave;
     ctx.fillRect(b.x0 + p, b.y0 + p, b.s - 2 * p, b.s - 2 * p);
     if (b.kind === 'park') { ctx.strokeStyle = 'rgba(210,195,160,.9)'; ctx.lineWidth = 14; ctx.beginPath(); ctx.moveTo(b.x0 + p, b.y0 + b.s / 2 + 60); ctx.quadraticCurveTo(b.x0 + b.s / 2, b.y0 + b.s / 2 - 90, b.x0 + b.s - p, b.y0 + p + 40); ctx.stroke(); }
-    if (b.pond) {
+    if (b.pond && !TH().canal) {
       ctx.fillStyle = '#7d776c'; ctx.beginPath(); ctx.ellipse(b.pond.x, b.pond.y, b.pond.rx + 6, b.pond.ry + 6, 0, 0, 7); ctx.fill();
       const g = ctx.createRadialGradient(b.pond.x - 20, b.pond.y - 15, 5, b.pond.x, b.pond.y, b.pond.rx); g.addColorStop(0, b.crater ? '#8e8e94' : '#7fd0ea'); g.addColorStop(1, b.crater ? '#4c4c55' : '#2f7fa8');
       ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(b.pond.x, b.pond.y, b.pond.rx, b.pond.ry, 0, 0, 7); ctx.fill();
     }
   }
+  if (TH().canal) drawCanal(ctx);
+}
+// canal through Bridge District: water down one road, with brick bridges where streets cross
+function drawCanal(ctx) {
+  const y = 2 * W.PITCH, S = W.SIZE;
+  ctx.fillStyle = '#7a5a46'; ctx.fillRect(-600, y - 4, S + 1200, W.ROAD + 8);
+  const g = ctx.createLinearGradient(0, y, 0, y + W.ROAD); g.addColorStop(0, '#2f6f86'); g.addColorStop(0.5, '#4f97ad'); g.addColorStop(1, '#2f6f86');
+  ctx.fillStyle = g; ctx.fillRect(-600, y + 6, S + 1200, W.ROAD - 12);
+  ctx.strokeStyle = 'rgba(255,255,255,.25)'; ctx.lineWidth = 2; for (let x = -600; x < S + 600; x += 70) { ctx.beginPath(); ctx.moveTo(x, y + 30 + (x % 3) * 12); ctx.lineTo(x + 26, y + 30 + (x % 3) * 12); ctx.stroke(); }
+  for (let k = 0; k <= W.N; k++) { const x = k * W.PITCH; ctx.fillStyle = '#8a6450'; ctx.fillRect(x - 6, y - 6, W.ROAD + 12, W.ROAD + 12); ctx.fillStyle = PAT.asph; ctx.fillRect(x + 4, y - 6, W.ROAD - 8, W.ROAD + 12); ctx.fillStyle = '#a77a5e'; ctx.fillRect(x - 6, y - 6, 10, W.ROAD + 12); ctx.fillRect(x + W.ROAD - 4, y - 6, 10, W.ROAD + 12); }
+}
+function drawOrganicGround(ctx, city, view) {
+  const S = W.SIZE, O = TH().organic;
+  ctx.fillStyle = THEME === 'village' ? PAT.grass : PAT.pave; ctx.fillRect(-600, -600, S + 1200, S + 1200);
+  // clearings
+  for (const b of city.blocks) {
+    if (b.cx + b.rx + 40 < view.x0 || b.cx - b.rx - 40 > view.x1 || b.cy + b.ry + 40 < view.y0 || b.cy - b.ry - 40 > view.y1) continue;
+    let fill = PAT.plaza;
+    if (THEME === 'village') fill = b.kind === 'green' || b.kind === 'park' ? '#7fbf5e' : b.field ? '#a38a52' : b.kind === 'shops' ? '#8fb56a' : PAT.plaza;
+    if (THEME === 'desert') fill = b.field ? '#f6e8c2' : b.kind === 'park' ? '#9cc06a' : '#e6cc92';
+    if (THEME === 'moon') fill = b.field ? '#8a8b92' : '#a9aab0';
+    ctx.save(); ctx.translate(b.cx, b.cy); ctx.rotate(b.rot);
+    ctx.fillStyle = 'rgba(0,0,0,.08)'; ctx.beginPath(); ctx.ellipse(0, 0, b.rx + 10, b.ry + 10, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = fill; ctx.beginPath(); ctx.ellipse(0, 0, b.rx, b.ry, 0, 0, 7); ctx.fill();
+    if (THEME === 'village' && b.field) { ctx.strokeStyle = 'rgba(90,70,35,.45)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.ellipse(0, 0, b.rx, b.ry, 0, 0, 7); ctx.clip(); for (let x = -b.rx; x < b.rx; x += 22) { ctx.moveTo(x, -b.ry); ctx.lineTo(x + 30, b.ry); } ctx.stroke(); }
+    if (THEME === 'moon' && b.field) { for (const [u, v, r] of [[-60, -30, 60], [70, 40, 46], [10, 90, 30]]) { ctx.fillStyle = '#5d5e66'; ctx.beginPath(); ctx.ellipse(u, v, r, r * 0.8, 0, 0, 7); ctx.fill(); ctx.strokeStyle = '#c4c5cb'; ctx.lineWidth = 5; ctx.beginPath(); ctx.ellipse(u, v, r, r * 0.8, 0, 3.3, 5.9); ctx.stroke(); } }
+    if (THEME === 'desert' && b.field) { ctx.fillStyle = 'rgba(80,170,200,.55)'; ctx.beginPath(); ctx.ellipse(b.rx * 0.35, b.ry * 0.3, b.rx * 0.4, b.ry * 0.3, 0.3, 0, 7); ctx.fill(); }
+    ctx.restore();
+    if (b.pond) { const g = ctx.createRadialGradient(b.pond.x - 20, b.pond.y - 15, 5, b.pond.x, b.pond.y, b.pond.rx); g.addColorStop(0, b.crater ? '#8e8e94' : '#7fd0ea'); g.addColorStop(1, b.crater ? '#4c4c55' : '#2f7fa8'); ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(b.pond.x, b.pond.y, b.pond.rx, b.pond.ry, 0, 0, 7); ctx.fill(); }
+  }
+  // tracks
+  ctx.lineCap = ctx.lineJoin = 'round';
+  for (const [w, col] of [[O.w + 12, O.edge], [O.w, O.col]]) { ctx.strokeStyle = col; ctx.lineWidth = w; for (const p of city.paths) { ctx.beginPath(); p.pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke(); } }
+  ctx.setLineDash(O.tyre ? [] : [2, 26]); ctx.strokeStyle = O.tyre ? 'rgba(40,42,50,.5)' : 'rgba(255,255,255,.18)'; ctx.lineWidth = O.tyre ? 4 : 8;
+  for (const p of city.paths) for (const off of O.tyre ? [-14, 14] : [0]) { ctx.beginPath(); p.pts.forEach((q, i, a) => { const n = a[Math.min(i + 1, a.length - 1)], m = a[Math.max(i - 1, 0)], dx = n[0] - m[0], dy = n[1] - m[1], l = Math.hypot(dx, dy) || 1, x = q[0] - dy / l * off, y = q[1] + dx / l * off; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); }
+  ctx.setLineDash([]);
 }
 // soft ground shadows for upright things (ground transform)
 function drawShadow(ctx, o) {
@@ -236,10 +314,11 @@ function drawVehicle(ctx, o) {
   ctx.filter = 'none';
 }
 function vehView(o) {
-  if (o.vspr) return { img: SPR[o.vspr], w: o.sw, flip: o.lane.dir === 'h' ? o.lane.sgn < 0 : o.lane.sgn < 0 };
-  const t = o.type, h = o.lane.dir === 'h';
-  if (h) return { img: SPR[t + '-side'], w: t === 'bus' ? 112 : 56, flip: (o.lane.sgn < 0) !== (t === 'bus') };
-  return { img: SPR[t + (o.lane.sgn > 0 ? '-front' : '-rear')], w: t === 'bus' ? 80 : 28, flip: false };
+  const cx = Math.cos(o.angle), sy = Math.sin(o.angle), right = cx > 0;
+  if (o.vspr) return { img: SPR[o.vspr], w: o.sw, flip: !right !== !!o.vleft };
+  const t = o.type, h = o.lane.dir === 'h' || (o.lane.dir === 'p' && Math.abs(cx) > 0.55);
+  if (h) return { img: SPR[t + '-side'], w: t === 'bus' ? 112 : 56, flip: !right !== (t === 'bus') };
+  return { img: SPR[t + (sy > 0 ? '-front' : '-rear')], w: t === 'bus' ? 80 : 28, flip: false };
 }
 function drawVehicleUp(ctx, o) { // upright space, origin at vehicle ground point
   const v = vehView(o); if (!v.img) return;

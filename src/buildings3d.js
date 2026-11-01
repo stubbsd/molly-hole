@@ -19,6 +19,7 @@ function P3(x, y, z) {
 }
 const is3D = o => !o.flat && !o.spr_flat && (o.type === 'office' || o.type === 'tower' || o.type === 'shop');
 function bStyle(o) {
+  if (THEME === 'district') return o.type === 'tower' ? { tex: 'stone', tw: 56, th: 52, roof: '#6a5f57' } : { tex: 'brick', tw: o.type === 'shop' ? 64 : 70, th: o.type === 'shop' ? 60 : 64, roof: o.hue < 0.5 ? '#4a4f57' : '#5a4638' };
   if (THEME === 'village') return o.type === 'tower' ? { tex: 'stone', tw: 56, th: 52, roof: '#5e6670' } : o.type === 'office' ? { tex: 'stone', tw: 56, th: 52, roof: '#55606b' } : { tex: o.hue < 0.55 ? 'brick' : 'stone', tw: 70, th: 64, roof: o.hue < 0.3 ? '#9c4a35' : o.hue < 0.7 ? '#8a4632' : '#58626d' };
   if (o.type === 'shop') return { tex: 'brick', tw: o.w, th: o.bh, roof: '#6d5a4c' };
   if (o.type === 'tower') return { tex: 'glass', tw: 60, th: 60, roof: '#9aa3ad' };
@@ -26,6 +27,7 @@ function bStyle(o) {
   return { tex: t, tw: t === 'glass' ? 60 : 56, th: t === 'glass' ? 58 : 52, roof: t === 'dark' ? '#5b5f66' : '#8d9197' };
 }
 function bDims(o) {
+  if (THEME === 'district' && o.type === 'office') return { w: o.w * 0.94, d: o.d * 0.8, h: Math.min(170, 110 + o.hue * 80) };
   if (THEME === 'village') { if (o.type === 'tower') return { w: 120, d: 120, h: 210 }; if (o.type === 'office') return { w: o.w * 0.9, d: o.d * 0.6, h: 90 }; return { w: o.w * 0.8, d: o.d * 0.62, h: 58 }; }
   if (o.type === 'shop') { o.bh = o.bh || Math.max(95, o.ht + 40); return { w: o.w * 0.92, d: o.d * 0.92, h: o.bh }; }
   if (o.type === 'tower') return { w: 160, d: 160, h: 470 };

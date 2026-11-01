@@ -82,3 +82,5 @@ svg{width:55%;height:55%;fill:#fff;stroke:#fff}
 .stop .face img{width:92%;height:92%;object-fit:contain;margin-top:-12%;pointer-events:none;filter:drop-shadow(0 calc(var(--s)*.03) calc(var(--s)*.03) rgba(70,40,5,.5))}
 .stop .wb{right:-22%;top:-48%;width:calc(var(--s)*.6);height:calc(var(--s)*.6);font-size:0;filter:drop-shadow(0 3px 4px rgba(20,25,10,.45))}
 .stop .wb img{width:100%;height:100%;object-fit:contain;pointer-events:none}
+/* phones: smaller back button and pills so nothing overlaps on the map / wardrobe */
+@media (max-width:560px){.rb.lg.back{width:64px;height:64px}.pill{font-size:24px;padding:8px 14px;gap:6px}.topright{gap:8px;top:calc(env(safe-area-inset-top) + 20px)}}
