@@ -508,6 +508,7 @@ function GT_POOL_RESET() { const keep = [...GT.values()]; GT.clear(); keep.forEa
 // crack ring around the hole: drawn once into a sprite, then rotated slowly each frame
 const CRK = new Map();
 function drawCrackSprite(ctx, x, y, R, col, t) {
+  return; // simplified art: no crack ring around the hole
   let c = CRK.get(col);
   if (!c) { window.__gtCreated = (window.__gtCreated || 0) + 1; c = document.createElement('canvas'); c.width = c.height = 400; const k = c.getContext('2d'); drawCracks(k, 200, 200, 100, col); CRK.set(col, c); }
   ctx.save(); ctx.translate(x, y); ctx.rotate(t * 0.6); const S = R * 4 * (1 + Math.sin(t * 3) * 0.04); ctx.drawImage(c, -S / 2, -S / 2, S, S); ctx.restore();

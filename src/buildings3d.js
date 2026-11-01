@@ -106,7 +106,7 @@ function drawBuilding3D(ctx, o, sink = 0, ox = 0, oy = 0) {
   if (o.type === 'tower') {
     const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, ap = P3(cx, cy, zt + 150), q = [P3(x0 + 25, y0 + 25, zt), P3(x1 - 25, y0 + 25, zt), P3(x1 - 25, y1 - 25, zt), P3(x0 + 25, y1 - 25, zt)];
     poly(ctx, [q[0], q[1], ap], '#7d8894'); poly(ctx, [q[3], q[0], ap], '#a9b4c0'); poly(ctx, [q[1], q[2], ap], '#5c6773'); poly(ctx, [q[2], q[3], ap], '#8c97a3');
-  } else if (o.type !== 'shop') {
+  } else if (o.type !== 'shop' && false) { // simplified art: plain flat roofs, no plant rooms/AC/water tanks
     const m = D.w * 0.18;
     box(ctx, x0 + m, y0 + m, x0 + m + D.w * 0.3, y0 + m + D.d * 0.25, zt, zt + 14, '#a4a9b0');
     box(ctx, x1 - m - D.w * 0.18, y1 - m - D.d * 0.2, x1 - m, y1 - m, zt, zt + 9, '#b9bec4');
