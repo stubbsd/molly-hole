@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Molly Hole">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/icons/icon-180.png">
+<link rel="icon" href="assets/icons/icon-192.png">
+<meta name="theme-color" content="#1b2230">
+<title>Molly Hole</title>
+<link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud" class="hidden">
+  <div class="topleft">
+    <button id="btnPause" class="rb" aria-label="Pause"><svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg></button>
+    <button id="btnHome" class="rb" aria-label="Home"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button>
+  </div>
+  <div id="growWrap"><div id="growHole"></div><div id="growBar"><div id="growFill"></div></div></div>
+  <div class="topright pill"><span class="star">★</span><span id="starCount">0</span></div>
+</div>
+
+<div id="home" class="screen">
+  <div class="title"><div class="logoHole"></div></div>
+  <div class="row">
+    <button id="btnRun" class="big" aria-label="City Run"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+    <button id="btnFree" class="big alt" aria-label="Free Play"><svg viewBox="0 0 24 24"><path d="M7 8c-2.2 0-4 1.8-4 4s1.8 4 4 4c3 0 7-8 10-8 2.2 0 4 1.8 4 4s-1.8 4-4 4c-3 0-7-8-10-8z" fill="none" stroke-width="2.6"/></svg></button>
+  </div>
+  <div class="row small">
+    <button id="btnWard" class="rb lg" aria-label="Hole skins"><div class="miniHole"></div></button>
+    <button id="btnMute" class="rb lg" aria-label="Sound"><svg viewBox="0 0 24 24" id="muteIcon"></svg></button>
+    <div class="pill"><span class="star">★</span><span id="starCountHome">0</span></div>
+  </div>
+</div>
+
+<div id="ward" class="screen hidden">
+  <div id="skins"></div>
+  <button id="btnWardBack" class="rb lg back" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5 8 12l7 7" fill="none" stroke-width="3"/></svg></button>
+  <div class="pill wardStars"><span class="star">★</span><span id="starCountWard">0</span></div>
+</div>
+
+<div id="pause" class="screen dim hidden">
+  <div class="row">
+    <button id="btnResume" class="big" aria-label="Play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+    <button id="btnPauseHome" class="big alt" aria-label="Home"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button>
+  </div>
+</div>
+
+<div id="end" class="screen clear hidden">
+  <div class="pill huge"><span class="star">★</span><span id="endStars">+0</span></div>
+  <div class="row">
+    <button id="btnAgain" class="big" aria-label="Play again"><svg viewBox="0 0 24 24"><path d="M12 5a7 7 0 1 1-7 7" fill="none" stroke-width="2.8"/><path d="M12 1v8l-5-4z"/></svg></button>
+    <button id="btnEndHome" class="big alt" aria-label="Home"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button>
+  </div>
+</div>
+
+<script src="src/audio.js"></script>
+<script src="src/skins.js"></script>
+<script src="src/world.js"></script>
+<script src="src/buildings3d.js"></script>
+<script src="src/game.js"></script>
+<script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+// Offline cache for Molly Hole. No network calls beyond its own files.
+const CACHE = 'molly-hole-847288a8';
+const FILES = [
+  "./",
+  "./assets/icons/icon-1024.png",
+  "./assets/icons/icon-180.png",
+  "./assets/icons/icon-192.png",
+  "./assets/icons/icon-512.png",
+  "./assets/sprites/bench.png",
+  "./assets/sprites/bin.png",
+  "./assets/sprites/bus-front.png",
+  "./assets/sprites/bus-rear.png",
+  "./assets/sprites/bus-side.png",
+  "./assets/sprites/bus.png",
+  "./assets/sprites/car-front.png",
+  "./assets/sprites/car-rear.png",
+  "./assets/sprites/car-side.png",
+  "./assets/sprites/car.png",
+  "./assets/sprites/cone.png",
+  "./assets/sprites/hr-dark.png",
+  "./assets/sprites/hr-glass.png",
+  "./assets/sprites/hr-stone.png",
+  "./assets/sprites/kiosk.png",
+  "./assets/sprites/lamp.png",
+  "./assets/sprites/office-glass.png",
+  "./assets/sprites/office-grey.png",
+  "./assets/sprites/office-stone.png",
+  "./assets/sprites/shop.png",
+  "./assets/sprites/taxi-front.png",
+  "./assets/sprites/taxi-rear.png",
+  "./assets/sprites/taxi-side.png",
+  "./assets/sprites/taxi.png",
+  "./assets/sprites/tower.png",
+  "./assets/sprites/tree.png",
+  "./assets/tex/brick.jpg",
+  "./assets/tex/dark.jpg",
+  "./assets/tex/glass.jpg",
+  "./assets/tex/stone.jpg",
+  "./index.html",
+  "./manifest.webmanifest",
+  "./src/audio.js",
+  "./src/buildings3d.js",
+  "./src/game.js",
+  "./src/skins.js",
+  "./src/style.css",
+  "./src/world.js",
+];
+self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
+self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(caches.match(e.request, { ignoreSearch: true }).then(r => r || fetch(e.request).then(res => { const c = res.clone(); caches.open(CACHE).then(k => k.put(e.request, c)); return res; })));
+});

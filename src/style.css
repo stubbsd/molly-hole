@@ -1,0 +1,41 @@
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body{margin:0;height:100%;overflow:hidden;background:#1b2230;font-family:-apple-system,system-ui,sans-serif;overscroll-behavior:none;touch-action:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hidden{display:none!important}
+button{border:0;cursor:pointer;touch-action:manipulation;padding:0}
+svg{width:55%;height:55%;fill:#fff;stroke:#fff}
+.rb{width:84px;height:84px;border-radius:50%;background:rgba(20,26,38,.72);box-shadow:0 4px 14px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.rb:active,.big:active{transform:scale(.92)}
+.rb.lg{width:100px;height:100px}
+#hud{position:fixed;inset:0;pointer-events:none}
+#hud button{pointer-events:auto}
+.topleft{position:absolute;left:calc(env(safe-area-inset-left) + 16px);top:calc(env(safe-area-inset-top) + 16px);display:flex;gap:14px}
+.topright{position:absolute;right:calc(env(safe-area-inset-right) + 16px);top:calc(env(safe-area-inset-top) + 22px)}
+.pill{display:flex;align-items:center;gap:10px;background:rgba(20,26,38,.72);color:#fff;font-weight:800;font-size:34px;padding:10px 22px;border-radius:40px;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+.pill.huge{font-size:64px;padding:18px 40px}
+.star{color:#ffcf3a;text-shadow:0 0 10px rgba(255,200,40,.6)}
+#growWrap{position:absolute;top:calc(env(safe-area-inset-top) + 30px);left:50%;transform:translateX(-50%);display:flex;align-items:center;width:min(40vw,420px)}
+#growHole{width:58px;height:58px;border-radius:50%;background:radial-gradient(#000 55%,#1f8fff 62%,#7fd0ff 70%,transparent 72%);flex:none;margin-right:-14px;z-index:1}
+#growBar{flex:1;height:22px;border-radius:12px;background:rgba(20,26,38,.72);overflow:hidden;box-shadow:0 4px 14px rgba(0,0,0,.35)}
+#growFill{height:100%;width:0;background:linear-gradient(90deg,#2a8cff,#6fe0ff);border-radius:12px;transition:width .25s}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5vh;background:linear-gradient(160deg,rgba(12,18,30,.55),rgba(12,18,30,.85));padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.screen.dim{background:rgba(10,14,22,.6)}
+.screen.clear{background:rgba(10,14,22,.25)}
+.row{display:flex;gap:6vw;align-items:center;justify-content:center;flex-wrap:wrap}
+.row.small{gap:4vw}
+.big{width:min(30vw,200px);height:min(30vw,200px);border-radius:50%;background:linear-gradient(160deg,#36c46a,#1e9a4e);box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 -6px 0 rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center}
+.big.alt{background:linear-gradient(160deg,#3a8dff,#2163d6)}
+.logoHole,.miniHole{border-radius:50%;background:radial-gradient(#000 58%,#1f8fff 64%,#9fe0ff 69%,transparent 72%);box-shadow:0 0 60px rgba(40,150,255,.5)}
+.logoHole{width:min(34vw,240px);height:min(34vw,240px)}
+.miniHole{width:62%;height:62%;box-shadow:none}
+#skins{display:grid;grid-template-columns:repeat(2,minmax(140px,220px));gap:28px}
+@media (orientation:landscape){#skins{grid-template-columns:repeat(4,minmax(140px,220px))}}
+.skin{aspect-ratio:3/4;border-radius:28px;background:rgba(30,38,54,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;box-shadow:0 8px 24px rgba(0,0,0,.4);border:5px solid transparent}
+.skin.on{border-color:#6fe0ff}
+.skin canvas{position:static;width:80%;height:auto;aspect-ratio:1}
+.skin .cost{color:#fff;font-weight:800;font-size:30px;display:flex;gap:8px;align-items:center}
+.skin.locked canvas{filter:grayscale(.8) brightness(.6)}
+.skin.can{animation:pulse 1.2s infinite}
+@keyframes pulse{50%{transform:scale(1.04)}}
+.back{position:absolute;left:calc(env(safe-area-inset-left) + 16px);top:calc(env(safe-area-inset-top) + 16px)}
+.wardStars{position:absolute;right:calc(env(safe-area-inset-right) + 16px);top:calc(env(safe-area-inset-top) + 22px)}
