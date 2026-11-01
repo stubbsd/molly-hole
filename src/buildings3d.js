@@ -17,14 +17,16 @@ function P3(x, y, z) {
   const zr = Y / (1 + Y * p.k), f = 1 / (1 - zr * p.k);
   return [p.ocx + X / f, p.ocy + zr];
 }
-const is3D = o => o.type === 'office' || o.type === 'tower' || o.type === 'shop';
+const is3D = o => !o.flat && !o.spr_flat && (o.type === 'office' || o.type === 'tower' || o.type === 'shop');
 function bStyle(o) {
+  if (THEME === 'village') return o.type === 'tower' ? { tex: 'stone', tw: 56, th: 52, roof: '#5e6670' } : o.type === 'office' ? { tex: 'stone', tw: 56, th: 52, roof: '#55606b' } : { tex: o.hue < 0.55 ? 'brick' : 'stone', tw: 70, th: 64, roof: o.hue < 0.3 ? '#9c4a35' : o.hue < 0.7 ? '#8a4632' : '#58626d' };
   if (o.type === 'shop') return { tex: 'brick', tw: o.w, th: o.bh, roof: '#6d5a4c' };
   if (o.type === 'tower') return { tex: 'glass', tw: 60, th: 60, roof: '#9aa3ad' };
   const t = o.spr ? o.spr.slice(3) : (o.hue < 0.4 ? 'glass' : o.hue < 0.7 ? 'stone' : 'dark');
   return { tex: t, tw: t === 'glass' ? 60 : 56, th: t === 'glass' ? 58 : 52, roof: t === 'dark' ? '#5b5f66' : '#8d9197' };
 }
 function bDims(o) {
+  if (THEME === 'village') { if (o.type === 'tower') return { w: 120, d: 120, h: 210 }; if (o.type === 'office') return { w: o.w * 0.9, d: o.d * 0.6, h: 90 }; return { w: o.w * 0.8, d: o.d * 0.62, h: 58 }; }
   if (o.type === 'shop') { o.bh = o.bh || Math.max(95, o.ht + 40); return { w: o.w * 0.92, d: o.d * 0.92, h: o.bh }; }
   if (o.type === 'tower') return { w: 160, d: 160, h: 470 };
   const tall = o.spr ? o.ht : o.ht * 1.25;
@@ -80,6 +82,17 @@ function drawBuilding3D(ctx, o, sink = 0, ox = 0, oy = 0) {
   ctx.beginPath(); for (const [x, y] of [[x0, y1], [x1, y1]]) { const a = P3(x, y, zb), b = P3(x, y, zt); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); } ctx.stroke();
   // roof with parapet, plant room and (for the landmark) a spire
   const r = [P3(x0, y0, zt), P3(x1, y0, zt), P3(x1, y1, zt), P3(x0, y1, zt)];
+  if (THEME === 'village' && o.type !== 'tower') { // pitched tiled roof, ridge east-west, plus a chimney
+    const ym = (y0 + y1) / 2, zr = zt + D.d * 0.55, e = 6;
+    poly(ctx, [P3(x0 - e, y0 - e, zt), P3(x1 + e, y0 - e, zt), P3(x1 + e, ym, zr), P3(x0 - e, ym, zr)], shadeCol(st.roof, 0.7));
+    if (PJ.camx < x0) poly(ctx, [P3(x0, y0, zt), P3(x0, y1, zt), P3(x0, ym, zr)], '#cbbd9f');
+    if (PJ.camx > x1) poly(ctx, [P3(x1, y0, zt), P3(x1, y1, zt), P3(x1, ym, zr)], '#8f846f');
+    box(ctx, x1 - D.w * 0.25, ym - 6, x1 - D.w * 0.25 + 12, ym + 6, zt + D.d * 0.2, zr + 16, '#8a5a44');
+    poly(ctx, [P3(x0 - e, y1 + e, zt), P3(x1 + e, y1 + e, zt), P3(x1 + e, ym, zr), P3(x0 - e, ym, zr)], st.roof);
+    const rs = [0.25, 0.5, 0.75]; ctx.strokeStyle = 'rgba(40,20,10,.25)'; ctx.lineWidth = 1;
+    ctx.beginPath(); for (const f of rs) { const a = P3(x0 - e, y1 + e + (ym - y1 - e) * f, zt + (zr - zt) * f), b = P3(x1 + e, y1 + e + (ym - y1 - e) * f, zt + (zr - zt) * f); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); } ctx.stroke();
+    ctx.restore(); return;
+  }
   poly(ctx, r, shadeCol(st.roof, 0.85));
   const iw = Math.min(D.w, D.d) * 0.07;
   poly(ctx, [P3(x0 + iw, y0 + iw, zt), P3(x1 - iw, y0 + iw, zt), P3(x1 - iw, y1 - iw, zt), P3(x0 + iw, y1 - iw, zt)], st.roof);

@@ -22,11 +22,30 @@ const HOLE_R = [0, 18, 24, 32, 42, 62, 88, 122, 168];
 // City Run tuned for hand play in a few minutes (points per item = size^2)
 const LEVEL_NEED = [0, 8, 50, 180, 420, 750, 1150, 1600, 1e9]; // ~3-4 min City Run by hand
 
+// ---------- worlds ----------
+// Each world reuses the same size classes (type) but swaps the art (spr) and the block mix.
+let THEME = 'city';
+const THEMES = {
+  city:     { kinds: [['highrise', .45], ['office', .6], ['shops', .85], ['plaza', 1]], furn: [['lamp', .22], ['bin', .42], ['cone', .58], ['tree', .66], ['bench', .70]], veh: [['car', .62], ['taxi', .82], ['bus', 1]], spr: {}, marks: true },
+  district: { kinds: [['shops', .45], ['plaza', .7], ['office', .85], ['highrise', 1]], furn: [['lamp', .25], ['bin', .45], ['tree', .62], ['bench', .72]], veh: [['car', .55], ['taxi', .85], ['bus', 1]], spr: {}, marks: true, canal: true },
+  village:  { kinds: [['shops', .5], ['office', .66], ['plaza', .86], ['farm', 1]], furn: [['tree', .2], ['bin', .3], ['cone', .45], ['bench', .52], ['lamp', .58]], veh: [['car', .5], ['tractor', .78], ['bus', 1]], spr: { bin: ['v-postbox', 16], cone: ['v-flowers', 30], kiosk: ['v-hay', 80] }, vspr: { tractor: ['v-tractor', 52] } },
+  desert:   { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['beach', 1]], furn: [['tree', .22], ['bin', .36], ['cone', .46], ['bench', .52]], veh: [['raptor', .5], ['stego', .78], ['trike', 1]], spr: { bin: ['d-crate', 22], cone: ['m-rock', 14], bench: ['d-boat', 44], tree: ['d-palm', 52], kiosk: ['d-lighthouse', 60], shop: ['d-hut', 125], office: ['d-volcano', 230], tower: ['d-brachio', 300] }, vspr: { raptor: ['d-raptor', 58], stego: ['d-stego', 100], trike: ['d-trike', 104] }, flat: true },
+  moon:     { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['craters', 1]], furn: [['cone', .2], ['bin', .34], ['tree', .44], ['bench', .54]], veh: [['rover', .55], ['shuttle', 1]], spr: { cone: ['m-rock', 16], bin: ['m-crate', 22], bench: ['m-solar', 38], tree: ['m-dish', 44], kiosk: ['m-dome', 90], shop: ['m-hab', 150], office: ['m-greenhouse', 210], tower: ['m-rocket', 170] }, vspr: { rover: ['m-rover', 60], shuttle: ['m-shuttle', 110] }, flat: true },
+};
+// moving things: size class + body for each themed vehicle
+const VEH = { car: ['car', 48, 24], taxi: ['taxi', 48, 22], bus: ['bus', 96, 28], tractor: ['car', 48, 26], raptor: ['car', 48, 22], stego: ['bus', 90, 30], trike: ['bus', 90, 30], rover: ['car', 50, 26], shuttle: ['bus', 96, 30] };
+function setTheme(t) { THEME = THEMES[t] ? t : 'city'; PAT = null; }
+const TH = () => THEMES[THEME];
+function pick(list, v) { for (const [k, p] of list) if (v < p) return k; return null; }
+function themeSprName(type) { const m = TH().spr[type]; return m ? m[0] : type; }
+
 function rng(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
 
 function makeObj(type, x, y, extra = {}) {
   const T = TYPES[type];
-  return Object.assign({ type, x, y, size: T.size, r: T.r, ht: T.ht, angle: 0, state: 'idle', ft: 0, wob: 0, hue: 0 }, extra);
+  const o = Object.assign({ type, x, y, size: T.size, r: T.r, ht: T.ht, angle: 0, state: 'idle', ft: 0, wob: 0, hue: 0 }, extra);
+  const m = TH().spr[type]; if (m) { o.spr = m[0]; o.sw = m[1]; if (TH().flat) o.flat = true; }
+  return o;
 }
 
 function buildCity(seed = 7) {
@@ -38,24 +57,21 @@ function buildCity(seed = 7) {
     let kind;
     if (bx === mid && by === mid) kind = 'tower';
     else if ((bx + by * 3) % 5 === 1) kind = 'park';
-    else { const v = R(); kind = v < 0.45 ? 'highrise' : v < 0.6 ? 'office' : v < 0.85 ? 'shops' : 'plaza'; }
+    else kind = pick(TH().kinds, R());
     blocks.push({ x0, y0, s: inner, kind });
     // pavement furniture on all four edges
     const e = W.PAVE / 2;
     for (let k = 26; k < inner - 20; k += 36) {
       const pts = [[x0 + k, y0 + e], [x0 + k, y0 + inner - e], [x0 + e, y0 + k], [x0 + inner - e, y0 + k]];
       for (const [px, py] of pts) {
-        const v = R();
-        if (v < 0.22) objs.push(makeObj('lamp', px, py));
-        else if (v < 0.42) objs.push(makeObj('bin', px, py, { hue: R() < 0.5 ? 0 : 1 }));
-        else if (v < 0.58) objs.push(makeObj('cone', px, py));
-        else if (v < 0.66) objs.push(makeObj('tree', px, py, { hue: R() }));
-        else if (v < 0.70) objs.push(makeObj('bench', px, py));
+        const f = pick(TH().furn, R());
+        if (f) objs.push(makeObj(f, px, py, { hue: R() }));
       }
     }
     const ins = W.PAVE + 6, a = x0 + ins, b = y0 + ins, s = inner - ins * 2;
     if (kind === 'tower') {
       objs.push(makeObj('tower', cx, cy, { w: 250, d: 250, landmark: true }));
+      if (THEME === 'village') blocks[blocks.length - 1].kind = 'green';
     } else if (kind === 'highrise') {
       const q = s / 4, HR = ['hr-glass', 'hr-stone', 'hr-dark'];
       [[cx - q, cy - q], [cx + q, cy - q], [cx - q, cy + q], [cx + q, cy + q]].forEach(([x, y]) => objs.push(makeObj('office', x, y, { w: 150, d: 150, hue: R(), spr: HR[Math.floor(R() * 3)], ht: 300 + R() * 140 })));
@@ -70,12 +86,22 @@ function buildCity(seed = 7) {
       for (let i = 0; i < 6; i++) { const ang = i / 6 * Math.PI * 2; objs.push(makeObj('tree', cx + Math.cos(ang) * 95, cy + Math.sin(ang) * 95, { hue: R() })); }
       for (let i = 0; i < 4; i++) { const ang = i / 4 * Math.PI * 2 + 0.4; objs.push(makeObj('bench', cx + Math.cos(ang) * 60, cy + Math.sin(ang) * 60, { angle: ang + Math.PI / 2 })); }
       for (let i = 0; i < 5; i++) objs.push(makeObj(R() < 0.5 ? 'bin' : 'cone', a + R() * s, b + R() * s, { hue: R() < 0.5 ? 0 : 1 }));
-      for (let i = 0; i < 6; i++) birds.push({ kind: 'pigeon', x: cx + (R() - 0.5) * 150, y: cy + (R() - 0.5) * 150, hx: cx, hy: cy, fly: 0, vx: 0, vy: 0 });
+      for (let i = 0; i < 6; i++) birds.push({ kind: THEME === 'moon' ? 'alien' : THEME === 'desert' ? 'crab' : THEME === 'village' ? 'duck' : 'pigeon', x: cx + (R() - 0.5) * 150, y: cy + (R() - 0.5) * 150, hx: cx, hy: cy, fly: 0, vx: 0, vy: 0 });
+    } else if (kind === 'farm' || kind === 'beach' || kind === 'craters') {
+      // open field: big props + small ones, with grazing friends
+      blocks[blocks.length - 1].field = true;
+      objs.push(makeObj('kiosk', cx - 70, cy - 40, { hue: R() }), makeObj('kiosk', cx + 80, cy + 60, { hue: R() }));
+      for (let i = 0; i < 9; i++) objs.push(makeObj(R() < 0.5 ? 'tree' : 'bench', a + 20 + R() * (s - 40), b + 20 + R() * (s - 40), { hue: R() }));
+      for (let i = 0; i < 6; i++) objs.push(makeObj(R() < 0.5 ? 'bin' : 'cone', a + R() * s, b + R() * s, { hue: R() }));
+      const crit = THEME === 'village' ? 'sheep' : THEME === 'moon' ? 'alien' : 'crab';
+      for (let i = 0; i < 5; i++) birds.push({ kind: crit, x: cx + (R() - 0.5) * 200, y: cy + (R() - 0.5) * 200, hx: cx + (R() - 0.5) * 120, hy: cy + (R() - 0.5) * 120, fly: 0, vx: 0, vy: 0 });
     } else if (kind === 'park') {
+      if (TH().canal) blocks[blocks.length - 1].pond = { x: cx, y: cy, rx: 150, ry: 70 }; else
       blocks[blocks.length - 1].pond = { x: cx + 30, y: cy + 20, rx: 70, ry: 50 };
       for (let i = 0; i < 10; i++) { const x = a + R() * s, y = b + R() * s; if (Math.hypot(x - cx - 30, y - cy - 20) > 90) objs.push(makeObj('tree', x, y, { hue: R() })); }
       for (let i = 0; i < 3; i++) objs.push(makeObj('bench', a + 30 + i * 70, b + s - 25));
-      for (let i = 0; i < 4; i++) birds.push({ kind: 'duck', x: cx + 30 + (R() - 0.5) * 80, y: cy + 20 + (R() - 0.5) * 50, hx: cx + 30, hy: cy + 20, fly: 0, vx: 0, vy: 0 });
+      if (THEME === 'moon') blocks[blocks.length - 1].crater = true;
+      for (let i = 0; i < 4; i++) birds.push({ kind: THEME === 'moon' ? 'alien' : 'duck', x: cx + 30 + (R() - 0.5) * 80, y: cy + 20 + (R() - 0.5) * 50, hx: cx + 30, hy: cy + 20, fly: 0, vx: 0, vy: 0 });
       if (R() < 0.6) birds.push({ kind: 'dog', x: a + 40, y: b + 40, hx: cx, hy: cy, fly: 0, vx: 0, vy: 0 });
     }
     // pedestrians walking around this block's pavement
@@ -93,10 +119,12 @@ function buildCity(seed = 7) {
 
 function spawnVehicle(city, initial) {
   const R = city.R, lane = city.lanes[Math.floor(R() * city.lanes.length)];
-  const v = R(), type = v < 0.62 ? 'car' : v < 0.82 ? 'taxi' : 'bus';
+  const kind = pick(TH().veh, R()), [type, len, wid] = VEH[kind], vs = (TH().vspr || {})[kind];
   const along = initial ? R() * W.SIZE : (lane.sgn > 0 ? -60 : W.SIZE + 60);
-  const speed = (type === 'bus' ? 55 : 80 + R() * 40) * lane.sgn;
-  const o = makeObj(type, 0, 0, { lane, along, speed, moving: true, hue: R(), len: type === 'bus' ? 96 : 48, wid: type === 'bus' ? 28 : (type === 'taxi' ? 22 : 24) });
+  const slow = THEME === 'desert' ? 0.55 : THEME === 'village' && kind === 'tractor' ? 0.5 : 1;
+  const speed = (type === 'bus' ? 55 : 80 + R() * 40) * slow * lane.sgn;
+  const o = makeObj(type, 0, 0, { lane, along, speed, moving: true, hue: R(), len, wid, kind });
+  delete o.spr; delete o.flat; if (vs) { o.vspr = vs[0]; o.sw = vs[1]; } if (kind === 'shuttle') o.hover = 1;
   placeVehicle(o); return o;
 }
 function placeVehicle(o) {
@@ -108,7 +136,7 @@ function placeVehicle(o) {
 // Angled camera: the ground is foreshortened by TILT; buildings/props are upright sprites.
 const TILT = 0.74;
 const SPR = {};
-const SPR_NAMES = ['hr-glass', 'hr-stone', 'hr-dark', 'car-side', 'car-front', 'car-rear', 'taxi-side', 'taxi-front', 'taxi-rear', 'bus-side', 'bus-front', 'bus-rear', 'office-glass', 'office-stone', 'office-grey', 'tower', 'shop', 'kiosk', 'tree', 'car', 'taxi', 'bus', 'bin', 'lamp', 'bench', 'cone'];
+const SPR_NAMES = ['v-hay', 'v-postbox', 'v-flowers', 'v-tractor', 'd-palm', 'd-crate', 'd-hut', 'd-boat', 'd-raptor', 'd-trike', 'd-stego', 'd-brachio', 'd-lighthouse', 'd-volcano', 'm-rock', 'm-crate', 'm-dish', 'm-solar', 'm-rover', 'm-shuttle', 'm-dome', 'm-rocket', 'm-hab', 'm-greenhouse', 'hr-glass', 'hr-stone', 'hr-dark', 'car-side', 'car-front', 'car-rear', 'taxi-side', 'taxi-front', 'taxi-rear', 'bus-side', 'bus-front', 'bus-rear', 'office-glass', 'office-stone', 'office-grey', 'tower', 'shop', 'kiosk', 'tree', 'car', 'taxi', 'bus', 'bin', 'lamp', 'bench', 'cone'];
 function loadSprites() {
   return Promise.all(SPR_NAMES.map(n => new Promise(res => { const i = new Image(); i.onload = () => { SPR[n] = i; res(); }; i.onerror = res; i.src = 'assets/sprites/' + n + '.png'; })));
 }
@@ -123,14 +151,27 @@ function noiseCanvas(size, base, vary, fn) {
   for (let i = 0; i < size * size; i++) { const n = (Math.random() - 0.5) * vary; d[i * 4] = base[0] + n; d[i * 4 + 1] = base[1] + n; d[i * 4 + 2] = base[2] + n; d[i * 4 + 3] = 255; }
   x.putImageData(id, 0, 0); if (fn) fn(x, size); return c;
 }
+const GROUND = {
+  city: { asph: [72, 76, 84], pave: [196, 192, 184], plaza: [214, 204, 186], grass: [96, 150, 72], kerb: '#8d8a84' },
+  district: { asph: [70, 70, 76], pave: [200, 180, 160], plaza: [190, 160, 130], grass: [96, 150, 72], kerb: '#8a6f5a' },
+  village: { asph: [88, 88, 86], pave: [176, 160, 128], plaza: [110, 160, 80], grass: [100, 152, 70], kerb: '#4f7a3a' },
+  desert: { asph: [214, 190, 140], pave: [236, 214, 160], plaza: [232, 206, 150], grass: [140, 170, 80], kerb: '#c9a874' },
+  moon: { asph: [86, 90, 100], pave: [150, 150, 156], plaza: [170, 170, 176], grass: [128, 128, 134], kerb: '#6d7078' },
+};
 function makePatterns(ctx) {
-  const asph = noiseCanvas(128, [72, 76, 84], 14, (x, s) => { for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(${Math.random() < .5 ? '255,255,255' : '0,0,0'},.05)`; x.beginPath(); x.arc(Math.random() * s, Math.random() * s, 2 + Math.random() * 8, 0, 7); x.fill(); } });
-  const pave = noiseCanvas(64, [196, 192, 184], 10, (x, s) => { x.strokeStyle = 'rgba(90,85,80,.35)'; x.lineWidth = 1.2; for (let i = 0; i <= s; i += 16) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, s); x.moveTo(0, i); x.lineTo(s, i); x.stroke(); } });
-  const plaza = noiseCanvas(96, [214, 204, 186], 10, (x, s) => { x.strokeStyle = 'rgba(120,105,90,.3)'; x.lineWidth = 1.5; for (let i = 0; i <= s; i += 24) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, s); x.moveTo(0, i); x.lineTo(s, i); x.stroke(); } x.fillStyle = 'rgba(160,140,120,.25)'; x.fillRect(0, 0, 24, 24); x.fillRect(48, 48, 24, 24); });
-  const grass = noiseCanvas(96, [96, 150, 72], 30, (x, s) => { for (let i = 0; i < 200; i++) { x.fillStyle = `rgba(${Math.random() < .5 ? '40,90,30' : '150,200,100'},.25)`; x.fillRect(Math.random() * s, Math.random() * s, 2, 3); } });
+  const G = GROUND[THEME];
+  const asph = noiseCanvas(128, G.asph, 14, (x, s) => { for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(${Math.random() < .5 ? '255,255,255' : '0,0,0'},.05)`; x.beginPath(); x.arc(Math.random() * s, Math.random() * s, 2 + Math.random() * 8, 0, 7); x.fill(); } });
+  const pave = noiseCanvas(64, G.pave, 10, (x, s) => { if (THEME === 'desert' || THEME === 'moon') return craters(x, s); x.strokeStyle = 'rgba(90,85,80,.35)'; x.lineWidth = 1.2; for (let i = 0; i <= s; i += 16) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, s); x.moveTo(0, i); x.lineTo(s, i); x.stroke(); } });
+  const plaza = noiseCanvas(96, G.plaza, 10, (x, s) => { if (THEME !== 'city' && THEME !== 'district') return craters(x, s); x.strokeStyle = 'rgba(120,105,90,.3)'; x.lineWidth = 1.5; for (let i = 0; i <= s; i += 24) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, s); x.moveTo(0, i); x.lineTo(s, i); x.stroke(); } x.fillStyle = 'rgba(160,140,120,.25)'; x.fillRect(0, 0, 24, 24); x.fillRect(48, 48, 24, 24); });
+  const grass = noiseCanvas(96, G.grass, 30, (x, s) => { for (let i = 0; i < 200; i++) { x.fillStyle = `rgba(${Math.random() < .5 ? '40,90,30' : '150,200,100'},.25)`; x.fillRect(Math.random() * s, Math.random() * s, 2, 3); } });
   PAT = { asph: ctx.createPattern(asph, 'repeat'), pave: ctx.createPattern(pave, 'repeat'), plaza: ctx.createPattern(plaza, 'repeat'), grass: ctx.createPattern(grass, 'repeat') };
 }
 
+function craters(x, s) {
+  for (let i = 0; i < (THEME === 'moon' ? 6 : 30); i++) { const r = THEME === 'moon' ? 3 + Math.random() * 8 : 1 + Math.random() * 2, px = Math.random() * s, py = Math.random() * s;
+    x.fillStyle = THEME === 'moon' ? 'rgba(40,40,50,.25)' : THEME === 'village' ? 'rgba(60,110,40,.3)' : 'rgba(150,120,70,.25)'; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill();
+    if (THEME === 'moon') { x.strokeStyle = 'rgba(255,255,255,.25)'; x.beginPath(); x.arc(px - 1, py - 1, r, 3.4, 5.6); x.stroke(); } }
+}
 // called with the ground transform (y squashed by TILT)
 function drawGround(ctx, city, view) {
   if (!PAT) makePatterns(ctx);
@@ -138,6 +179,7 @@ function drawGround(ctx, city, view) {
   ctx.fillStyle = PAT.asph; ctx.fillRect(-600, -600, S + 1200, S + 1200);
   for (let k = 0; k <= W.N; k++) {
     const o = k * W.PITCH;
+    if (!TH().marks) continue;
     ctx.fillStyle = 'rgba(255,255,255,.75)';
     for (let t = 0; t < S; t += 48) { if ((t % W.PITCH) < W.ROAD + 10) continue; ctx.fillRect(t, o + W.ROAD / 2 - 2, 26, 4); ctx.fillRect(o + W.ROAD / 2 - 2, t, 4, 26); }
     ctx.fillStyle = 'rgba(240,200,60,.8)'; // yellow edge lines
@@ -146,18 +188,18 @@ function drawGround(ctx, city, view) {
   for (const b of city.blocks) {
     if (b.x0 > view.x1 || b.x0 + b.s < view.x0 || b.y0 > view.y1 || b.y0 + b.s < view.y0) continue;
     // zebra crossings on approach to each junction
-    ctx.fillStyle = 'rgba(250,250,250,.85)';
+    ctx.fillStyle = TH().marks ? 'rgba(250,250,250,.85)' : 'rgba(0,0,0,0)';
     for (let i = 0; i < 7; i++) { ctx.fillRect(b.x0 - W.ROAD + 14 + i * 12, b.y0 - 26, 7, 20); ctx.fillRect(b.x0 - 26, b.y0 - W.ROAD + 14 + i * 12, 20, 7); }
     // kerb + pavement
-    ctx.fillStyle = '#8d8a84'; ctx.fillRect(b.x0 - 3, b.y0 - 3, b.s + 6, b.s + 6);
+    ctx.fillStyle = GROUND[THEME].kerb; ctx.fillRect(b.x0 - 3, b.y0 - 3, b.s + 6, b.s + 6);
     ctx.fillStyle = PAT.pave; ctx.fillRect(b.x0, b.y0, b.s, b.s);
     const p = W.PAVE;
-    ctx.fillStyle = b.kind === 'park' ? PAT.grass : b.kind === 'plaza' || b.kind === 'tower' ? PAT.plaza : PAT.pave;
+    ctx.fillStyle = b.kind === 'park' || b.kind === 'green' || b.field ? PAT.grass : b.kind === 'plaza' || b.kind === 'tower' ? PAT.plaza : PAT.pave;
     ctx.fillRect(b.x0 + p, b.y0 + p, b.s - 2 * p, b.s - 2 * p);
     if (b.kind === 'park') { ctx.strokeStyle = 'rgba(210,195,160,.9)'; ctx.lineWidth = 14; ctx.beginPath(); ctx.moveTo(b.x0 + p, b.y0 + b.s / 2 + 60); ctx.quadraticCurveTo(b.x0 + b.s / 2, b.y0 + b.s / 2 - 90, b.x0 + b.s - p, b.y0 + p + 40); ctx.stroke(); }
     if (b.pond) {
       ctx.fillStyle = '#7d776c'; ctx.beginPath(); ctx.ellipse(b.pond.x, b.pond.y, b.pond.rx + 6, b.pond.ry + 6, 0, 0, 7); ctx.fill();
-      const g = ctx.createRadialGradient(b.pond.x - 20, b.pond.y - 15, 5, b.pond.x, b.pond.y, b.pond.rx); g.addColorStop(0, '#7fd0ea'); g.addColorStop(1, '#2f7fa8');
+      const g = ctx.createRadialGradient(b.pond.x - 20, b.pond.y - 15, 5, b.pond.x, b.pond.y, b.pond.rx); g.addColorStop(0, b.crater ? '#8e8e94' : '#7fd0ea'); g.addColorStop(1, b.crater ? '#4c4c55' : '#2f7fa8');
       ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(b.pond.x, b.pond.y, b.pond.rx, b.pond.ry, 0, 0, 7); ctx.fill();
     }
   }
@@ -179,7 +221,7 @@ function spriteFor(o) {
 // upright sprite metrics in "upright space" (x, y*TILT); returns {img,w,h,bx,by}
 function spriteBox(o) {
   const img = SPR[spriteFor(o)]; if (!img) return null;
-  const w = o.spr ? o.w * 1.3 : o.type !== 'tower' && o.w ? o.w * 1.12 : SPRITE_W[o.type] || 30;
+  const w = o.sw ? o.sw : o.spr ? o.w * 1.3 : o.type !== 'tower' && o.w ? o.w * 1.12 : SPRITE_W[o.type] || 30;
   const h = w * img.height / img.width;
   const by = o.y * TILT + (o.d ? o.d * TILT * 0.5 : 4);
   return { img, w, h, bx: o.x, by };
@@ -194,6 +236,7 @@ function drawVehicle(ctx, o) {
   ctx.filter = 'none';
 }
 function vehView(o) {
+  if (o.vspr) return { img: SPR[o.vspr], w: o.sw, flip: o.lane.dir === 'h' ? o.lane.sgn < 0 : o.lane.sgn < 0 };
   const t = o.type, h = o.lane.dir === 'h';
   if (h) return { img: SPR[t + '-side'], w: t === 'bus' ? 112 : 56, flip: (o.lane.sgn < 0) !== (t === 'bus') };
   return { img: SPR[t + (o.lane.sgn > 0 ? '-front' : '-rear')], w: t === 'bus' ? 80 : 28, flip: false };
@@ -201,7 +244,9 @@ function vehView(o) {
 function drawVehicleUp(ctx, o) { // upright space, origin at vehicle ground point
   const v = vehView(o); if (!v.img) return;
   const h = v.w * v.img.height / v.img.width;
+  if (o.hover) ctx.translate(0, -18 - Math.sin(performance.now() / 300 + o.hue * 9) * 5);
   if (v.flip) ctx.scale(-1, 1);
+  if (o.vspr) { ctx.drawImage(v.img, -v.w / 2, -h * 0.9, v.w, h); return; }
   ctx.drawImage(o.type === 'car' && o.hue > 0.15 ? tinted(v.img, o.hue) : v.img, -v.w / 2, -h * 0.72, v.w, h);
 }
 function drawVehShadow(ctx, o) { // ground space
@@ -236,6 +281,7 @@ function drawPed(ctx, p, t) {
   ctx.fillStyle = 'rgba(10,15,30,.3)'; ctx.beginPath(); ctx.ellipse(2, 1, 6, 2.5, 0, 0, 7); ctx.fill();
   ctx.strokeStyle = '#2d3442'; ctx.lineWidth = 2.6; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(-1.5, -9); ctx.lineTo(-1.5 + sw, 0); ctx.moveTo(1.5, -9); ctx.lineTo(1.5 - sw, 0); ctx.stroke();
+  if (THEME === 'moon') { ctx.fillStyle = '#f4f6f8'; roundRect(ctx, -5.5, -21, 11, 13, 4); ctx.fill(); ctx.fillStyle = SHIRT[p.col]; ctx.fillRect(-5.5, -15, 11, 2); ctx.fillStyle = '#f4f6f8'; ctx.beginPath(); ctx.arc(0, -25, 5.5, 0, 7); ctx.fill(); ctx.fillStyle = '#3a5a8a'; ctx.beginPath(); ctx.ellipse(1, -25, 3.6, 2.8, 0, 0, 7); ctx.fill(); return; }
   ctx.fillStyle = SHIRT[p.col]; roundRect(ctx, -4.5, -20, 9, 12, 3); ctx.fill();
   ctx.strokeStyle = SHIRT[p.col]; ctx.lineWidth = 2.2; ctx.beginPath(); ctx.moveTo(-4.5, -18); ctx.lineTo(-5.5 - sw * 0.5, -11); ctx.moveTo(4.5, -18); ctx.lineTo(5.5 + sw * 0.5, -11); ctx.stroke();
   ctx.fillStyle = ['#f1c9a5', '#c68e65', '#8d5a3b', '#e8b98f'][p.col % 4]; ctx.beginPath(); ctx.arc(0, -24, 4, 0, 7); ctx.fill();
@@ -243,7 +289,21 @@ function drawPed(ctx, p, t) {
 }
 function drawBird(ctx, b, t) {
   ctx.fillStyle = 'rgba(10,15,30,.25)'; ctx.beginPath(); ctx.ellipse(0, 2, 6, 2.5, 0, 0, 7); ctx.fill();
-  if (b.kind === 'duck') {
+  if (b.kind === 'sheep') {
+    ctx.fillStyle = '#f2efe6'; for (const [x, y, r] of [[-5, -8, 6], [2, -10, 7], [7, -7, 5], [-1, -5, 6]]) { ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); }
+    ctx.fillStyle = '#2b2622'; ctx.beginPath(); ctx.ellipse(12, -10, 3.5, 4.5, 0.3, 0, 7); ctx.fill(); ctx.fillRect(-4, -3, 2, 4); ctx.fillRect(5, -3, 2, 4);
+  } else if (b.kind === 'alien') {
+    const w = Math.sin(t * 4 + b.hx) * 1.5;
+    ctx.fillStyle = '#7fd65a'; ctx.beginPath(); ctx.ellipse(w * .3, -9, 6, 9, w * .05, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#7fd65a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(-2, -17); ctx.lineTo(-4 + w, -23); ctx.moveTo(2, -17); ctx.lineTo(4 + w, -23); ctx.stroke();
+    ctx.fillStyle = '#ffe36a'; ctx.beginPath(); ctx.arc(-4 + w, -23, 1.8, 0, 7); ctx.arc(4 + w, -23, 1.8, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, -11, 3.2, 0, 7); ctx.fill(); ctx.fillStyle = '#223'; ctx.beginPath(); ctx.arc(0.6, -11, 1.6, 0, 7); ctx.fill();
+  } else if (b.kind === 'crab') {
+    const l = Math.sin(t * 14 + b.hx) * 1.2;
+    ctx.fillStyle = '#e8643a'; ctx.beginPath(); ctx.ellipse(0, -4, 7, 4, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = '#c94e2a'; ctx.lineWidth = 1.4; ctx.beginPath(); for (const sx of [-1, 1]) for (const k of [0, 3]) { ctx.moveTo(sx * 5, -3 + k * .5); ctx.lineTo(sx * (9 + l), 0 + k * .5); } ctx.stroke();
+    ctx.beginPath(); ctx.arc(-8, -7, 2.4, 0, 7); ctx.arc(8, -7, 2.4, 0, 7); ctx.fill();
+  } else if (b.kind === 'duck') {
     ctx.fillStyle = '#7a5c3f'; ctx.beginPath(); ctx.ellipse(0, -3, 8, 5, 0, 0, 7); ctx.fill();
     ctx.fillStyle = '#2f7a46'; ctx.beginPath(); ctx.arc(6, -9, 3.5, 0, 7); ctx.fill(); ctx.fillStyle = '#f2b23a'; ctx.fillRect(9, -9.5, 4, 2);
   } else if (b.kind === 'dog') {
