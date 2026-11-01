@@ -1,5 +1,5 @@
 // Offline cache for Molly Hole. No network calls beyond its own files.
-const CACHE = 'molly-hole-plain2';
+const CACHE = 'molly-hole-v2look';
 const FILES = [
   "./",
   "./assets/icons/icon-1024.png",

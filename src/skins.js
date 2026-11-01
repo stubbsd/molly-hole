@@ -13,6 +13,14 @@ function drawHole(ctx, x, y, R, skinId, t) { // simplified flat look: solid rim,
   const s = SKINS.find(k => k.id === skinId) || SKINS[0];
   const rimW = Math.max(4, R * 0.16);
   ctx.save();
+  const im = s.img && typeof SPR !== 'undefined' && SPR[s.img];
+  if (im) { // painted ring: dark throat first, then the ring art with its hollow lined up on the hole edge
+    const ig = ctx.createRadialGradient(x, y - R * 0.2, R * 0.1, x, y, R * 1.05);
+    ig.addColorStop(0, '#000'); ig.addColorStop(0.75, '#05070c'); ig.addColorStop(1, s.id === 'tiger' ? '#4a1a0a' : s.id === 'galaxy' ? '#1a0f3a' : s.id === 'neon' ? '#0a2a24' : '#101826');
+    ctx.fillStyle = ig; ctx.beginPath(); ctx.arc(x, y, R * 1.08, 0, 7); ctx.fill();
+    const w = 2 * R * 1.04 / s.inner, h = w * im.height / im.width;
+    ctx.drawImage(im, x - w / 2, y - h / 2, w, h); ctx.restore(); return;
+  }
   ctx.fillStyle = s.rim[0]; ctx.beginPath(); ctx.arc(x, y, R + rimW * 1.3, 0, 7); ctx.fill();
   ctx.strokeStyle = '#1a1f2b'; ctx.lineWidth = Math.max(2, rimW * 0.3); ctx.stroke();
   ctx.fillStyle = s.rim[1]; ctx.beginPath(); ctx.arc(x, y, R + rimW * 0.55, 0, 7); ctx.fill();
