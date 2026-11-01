@@ -19,15 +19,15 @@ function P3(x, y, z) {
 }
 const is3D = o => !o.flat && !o.spr_flat && (o.type === 'office' || o.type === 'tower' || o.type === 'shop');
 function bStyle(o) {
-  if (THEME === 'village') { const D = bDims(o); return o.type === 'tower' ? { tex: 'f-church', tw: D.w, th: D.h, roof: '#5e6670' } : o.type === 'office' ? { tex: 'f-pub', tw: D.w, th: D.h, roof: '#55606b' } : { tex: 'f-cottage', tw: D.w, th: D.h, roof: o.hue < 0.5 ? '#b08a4e' : '#9a5a3c' }; }
-  if (THEME === 'district' && o.type !== 'tower') { const D = bDims(o); if (o.hue > 0.72) return { tex: o.type === 'office' ? 'f-deco' : 'f-shopfront', tw: D.w, th: D.h, roof: '#4f5660' }; return { tex: o.type === 'office' ? (o.hue < 0.35 ? 'brick' : 'f-warehouse') : 'f-terrace', ...(o.type === 'office' && o.hue < 0.35 ? { tw: 70, th: 64 } : {}), tw: D.w, th: D.h, roof: o.hue < 0.5 ? '#4a4f57' : '#5a4638', ...(o.type === 'office' && o.hue < 0.35 ? { tw: 70, th: 64 } : {}) }; }
-  if (THEME === 'district') return o.type === 'tower' ? { tex: 'stone', tw: 56, th: 52, roof: '#6a5f57' } : { tex: 'brick', tw: o.type === 'shop' ? 64 : 70, th: o.type === 'shop' ? 60 : 64, roof: o.hue < 0.5 ? '#4a4f57' : '#5a4638' };
-  if (THEME === 'village') return o.type === 'tower' ? { tex: 'stone', tw: 56, th: 52, roof: '#5e6670' } : o.type === 'office' ? { tex: 'stone', tw: 56, th: 52, roof: '#55606b' } : { tex: o.hue < 0.55 ? 'brick' : 'stone', tw: 70, th: 64, roof: o.hue < 0.3 ? '#9c4a35' : o.hue < 0.7 ? '#8a4632' : '#58626d' };
-  if (o.type === 'shop') { const D = bDims(o), k = Math.floor(o.hue * 4); return k === 0 ? { tex: 'f-shopfront', tw: D.w, th: D.h, roof: '#6d5a4c' } : k === 1 ? { tex: 'f-terrace', tw: D.w, th: D.h, roof: '#4f5660' } : k === 2 ? { tex: 'stone', tw: 56, th: 52, roof: '#7a7068' } : { tex: 'brick', tw: o.w, th: o.bh, roof: '#6d5a4c' }; }
-  if (o.type === 'tower') return { tex: 'glass', tw: 60, th: 60, roof: '#9aa3ad' };
-  if (!o.spr && o.hue >= 0.25 && o.hue < 0.5) { const D = bDims(o); return { tex: o.hue < 0.37 ? 'f-modern' : 'f-deco', tw: D.w, th: Math.min(D.h, D.w * 1.6), roof: '#9a9488' }; }
+  if (THEME === 'village') { const D = bDims(o); return o.type === 'tower' ? { tex: 'f-church', tw: D.w, th: D.h, roof: '#5e6670' } : o.type === 'office' ? { tex: 'f-pub', tw: D.w, th: D.h, roof: '#55606b' } : { tex: 'f-cottage', tw: D.w, th: D.h, roof: o.hue < 0.5 ? '#e0a33a' : '#d0562e' }; }
+  if (THEME === 'district' && o.type !== 'tower') { const D = bDims(o); if (o.hue > 0.72) return { tex: o.type === 'office' ? 'f-deco' : 'f-shopfront', tw: D.w, th: D.h, roof: '#2f6fd6' }; return { tex: o.type === 'office' ? (o.hue < 0.35 ? 'brick' : 'f-warehouse') : 'f-terrace', ...(o.type === 'office' && o.hue < 0.35 ? { tw: 70, th: 64 } : {}), tw: D.w, th: D.h, roof: o.hue < 0.5 ? '#3a7bd5' : '#d9542f', ...(o.type === 'office' && o.hue < 0.35 ? { tw: 70, th: 64 } : {}) }; }
+  if (THEME === 'district') return o.type === 'tower' ? { tex: 'stone', tw: 56, th: 52, roof: '#e0a030' } : { tex: 'brick', tw: o.type === 'shop' ? 64 : 70, th: o.type === 'shop' ? 60 : 64, roof: o.hue < 0.5 ? '#3a7bd5' : '#d9542f' };
+  if (THEME === 'village') return o.type === 'tower' ? { tex: 'stone', tw: 56, th: 52, roof: '#5e6670' } : o.type === 'office' ? { tex: 'stone', tw: 56, th: 52, roof: '#55606b' } : { tex: o.hue < 0.55 ? 'brick' : 'stone', tw: 70, th: 64, roof: o.hue < 0.3 ? '#d8452f' : o.hue < 0.7 ? '#c8502a' : '#58626d' };
+  if (o.type === 'shop') { const D = bDims(o), k = Math.floor(o.hue * 4); return k === 0 ? { tex: 'f-shopfront', tw: D.w, th: D.h, roof: '#e04a3a' } : k === 1 ? { tex: 'f-terrace', tw: D.w, th: D.h, roof: '#2f6fd6' } : k === 2 ? { tex: 'stone', tw: 56, th: 52, roof: '#2fa36b' } : { tex: 'brick', tw: 64, th: 60, roof: '#e04a3a' }; }
+  if (o.type === 'tower') return { tex: 'glass', tw: 60, th: 60, roof: '#33b3c9' };
+  if (!o.spr && o.hue >= 0.25 && o.hue < 0.5) { const D = bDims(o); return { tex: o.hue < 0.37 ? 'f-modern' : 'f-deco', tw: D.w, th: Math.min(D.h, D.w * 1.6), roof: '#f0b43c' }; }
   const t = o.spr ? o.spr.slice(3) : (o.hue < 0.25 ? 'glass' : o.hue < 0.7 ? 'stone' : 'dark');
-  return { tex: t, tw: t === 'glass' ? 60 : 56, th: t === 'glass' ? 58 : 52, roof: t === 'dark' ? '#5b5f66' : '#8d9197' };
+  return { tex: t, tw: t === 'glass' ? 60 : 56, th: t === 'glass' ? 58 : 52, roof: t === 'dark' ? '#5b4fc4' : '#e8763a' };
 }
 function bDims(o) {
   if (THEME === 'district' && o.type === 'office') return { w: o.w * 0.94, d: o.d * 0.8, h: Math.min(170, 110 + o.hue * 80) };
