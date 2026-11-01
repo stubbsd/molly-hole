@@ -289,13 +289,16 @@ function update(dt) {
     if (o.state !== 'idle') continue;
     const dd = Math.hypot(o.x - hole.x, o.y - hole.y);
     if (dd > hole.R + o.r + 10) { o.wob = Math.max(0, o.wob - dt); continue; }
-    if (o.size <= hole.level && dd + o.r * 0.5 < hole.R) {
+    // fits = its size tier is allowed OR (small street prop) its footprint is clearly smaller than the hole;
+    // goes in once its centre is over the hole (was: had to sit almost fully inside, so trees/bins on the rim refused)
+    const fits = o.size <= hole.level || (!o.moving && !is3D(o) && !o.landmark && o.r * 1.1 < hole.R);
+    if (fits && dd < hole.R * 0.9) {
       if (mode === 'order' && !orderMatch(o)) { // wrong thing: gently pops back out, no penalty
         if (!o.moving) { const ux = dd > 1 ? (o.x - hole.x) / dd : 1, uy = dd > 1 ? (o.y - hole.y) / dd : 0; o.x = hole.x + ux * (hole.R + o.r + 6); o.y = hole.y + uy * (hole.R + o.r + 6); }
         o.wob = 0.6; Sfx.teeter();
       } else if (falling.length < 8) startFall(o);
     }
-    else if (o.size > hole.level && dd < hole.R + o.r * 0.6) { o.wob = 0.6; Sfx.teeter(); }
+    else if (!fits && dd < hole.R + o.r * 0.6) { o.wob = 0.6; Sfx.teeter(); }
   }
   // people and pets can be swallowed too (they pop back out somewhere else later)
   for (const arr of [peds, birds]) for (let i = arr.length - 1; i >= 0; i--) {
@@ -431,7 +434,7 @@ function updateParts(dt) { for (let i = parts.length - 1; i >= 0; i--) { const p
 // onto the screen with a perspective divide, so the floor recedes like a real 3D plane and
 // every prop/shadow on it shares exactly the same projection.
 const oc = document.createElement('canvas'), octx = oc.getContext('2d'), RLIST = [], depthCmp = (a, b) => (a.y + (a._k ? 0 : (a.d || 0) / 2)) - (b.y + (b._k ? 0 : (b.d || 0) / 2));
-const EXW = 1.12, EXH = 1.07, PK = 0.15, OCY = 0.53; // just big enough for the warp source (was 1.8×1.6 = 2.6× the pixels)
+const EXW = 1.12, EXH = 1.07, PK = 0.22, OCY = 0.53; // just big enough for the warp source (was 1.8×1.6 = 2.6× the pixels)
 function render() {
   const mctx = window.ctx || cv.getContext('2d');
   const ow = Math.ceil(cv.width * EXW), oh = Math.ceil(cv.height * EXH);
@@ -531,7 +534,7 @@ function render() {
     U(); const fs = Math.max(16, hole.R * 0.42), hx = hole.x, hyy = hole.y * TILT;
     ctx.font = `900 ${fs}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineJoin = 'round';
     const lab = (txt, x, y, col) => { ctx.lineWidth = fs * 0.22; ctx.strokeStyle = '#5a2a86'; ctx.strokeText(txt, x, y); ctx.fillStyle = col; ctx.fillText(txt, x, y); };
-    lab('Size ' + (hole.level + 1), hx, hyy - hole.R * TILT - hole.R * 0.45, '#ffe46b');
+    lab('Size ' + hole.level, hx, hyy - hole.R * TILT - hole.R * 0.45, '#ffe46b');
     for (const p of pops) { ctx.globalAlpha = 1 - p.t / 0.9; lab(p.txt, p.x + hole.R * 0.5, p.y * TILT - hole.R * TILT - hole.R * 0.45 - fs - p.t * 60, '#ffffff'); }
     ctx.globalAlpha = 1;
     const bw = hole.R * 1.4, bh = Math.max(7, fs * 0.38), by = hyy + hole.R * TILT + hole.R * 0.35, fr = hole.level >= 8 ? 1 : Math.min(1, hole.pts / LEVEL_NEED[hole.level]);
@@ -547,9 +550,13 @@ function render() {
     const z0 = zOf(Y), z1 = zOf(Y + step), f = 1 / (1 - (z0 + z1) * 0.5 * k), sw = W2 / f;
     mctx.drawImage(oc, ocx - sw / 2, ocy + z0, sw, Math.max(0.5, z1 - z0), 0, cy + Y, W2, step);
   }
+  // depth cues: soft sky haze over the far (top) edge, gentle darkening near the bottom; gradients cached per size
+  if (!depthG || depthG.h !== H2) { const t = mctx.createLinearGradient(0, 0, 0, H2 * 0.42); t.addColorStop(0, 'rgba(190,225,255,.55)'); t.addColorStop(1, 'rgba(190,225,255,0)');
+    const b = mctx.createLinearGradient(0, H2 * 0.78, 0, H2); b.addColorStop(0, 'rgba(20,30,60,0)'); b.addColorStop(1, 'rgba(20,30,60,.16)'); depthG = { h: H2, t, b }; }
+  mctx.fillStyle = depthG.t; mctx.fillRect(0, 0, W2, H2 * 0.42); mctx.fillStyle = depthG.b; mctx.fillRect(0, H2 * 0.78, W2, H2 * 0.22);
 }
 // inverse of the warp: CSS pixel under the finger -> world ground point
-let proj = null;
+let proj = null, depthG = null;
 function screenToWorld(px, py) {
   if (!proj) return { x: hole.x, y: hole.y };
   const { ow, oh, s, ox, oy, W2, H2, k } = proj, X = px * dpr, Y = py * dpr - H2 * 0.5;
