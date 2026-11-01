@@ -28,7 +28,7 @@ let THEME = 'city';
 const THEMES = {
   city:     { kinds: [['highrise', .45], ['office', .6], ['shops', .85], ['plaza', 1]], furn: [['lamp', .22], ['bin', .42], ['cone', .58], ['tree', .66], ['bench', .70]], veh: [['car', .62], ['taxi', .82], ['bus', 1]], spr: {}, marks: true },
   district: { kinds: [['shops', .45], ['plaza', .7], ['office', .85], ['highrise', 1]], furn: [['lamp', .25], ['bin', .45], ['tree', .62], ['bench', .72]], veh: [['car', .5], ['taxi', .72], ['tram', 1]], vspr: { tram: ['b-tram', 112, 1], nboat: ['b-nboat', 124] }, spr: {}, marks: true, canal: true },
-  village:  { kinds: [['shops', .5], ['office', .66], ['plaza', .86], ['farm', 1]], furn: [['tree', .2], ['bin', .3], ['cone', .45], ['bench', .52], ['lamp', .58]], veh: [['car', .45], ['tractor', .75], ['vbus', 1]], spr: { bin: ['v-postbox', 16], cone: ['v-flowers', 30], kiosk: ['v-hay', 80] }, vspr: { tractor: ['v-tractor', 52], vbus: ['v-bus', 104, 1] }, organic: { w: 62, col: '#bfa679', edge: '#8f7a52' } },
+  village:  { kinds: [['shops', .5], ['office', .66], ['plaza', .86], ['farm', 1]], furn: [['tree', .2], ['bin', .3], ['cone', .45], ['bench', .52], ['lamp', .58]], veh: [['car', .45], ['tractor', .75], ['vbus', 1]], spr: { tree: ['v-oak', 66], bin: ['v-postbox', 16], cone: ['v-flowers', 30], kiosk: ['v-hay', 80] }, vspr: { tractor: ['v-tractor', 52], vbus: ['v-bus', 104, 1] }, organic: { w: 62, col: '#bfa679', edge: '#8f7a52' } },
   desert:   { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['beach', 1]], furn: [['tree', .22], ['bin', .36], ['cone', .46], ['bench', .52]], veh: [['raptor', .5], ['stego', .78], ['trike', 1]], spr: { bin: ['d-crate', 22], cone: ['m-rock', 14], bench: ['d-boat', 44], tree: ['d-palm', 52], kiosk: ['d-lighthouse', 60], shop: ['d-hut', 125], office: ['d-volcano', 230], tower: ['d-brachio', 300] }, vspr: { raptor: ['d-raptor', 58], stego: ['d-stego', 100], trike: ['d-trike', 104] }, flat: true, organic: { w: 70, col: '#f2e2b4', edge: '#cdb27a' } },
   moon:     { kinds: [['shops', .4], ['office', .55], ['plaza', .85], ['craters', 1]], furn: [['cone', .2], ['bin', .34], ['tree', .44], ['bench', .54]], veh: [['rover', .55], ['shuttle', 1]], spr: { cone: ['m-rock', 16], bin: ['m-crate', 22], bench: ['m-solar', 38], tree: ['m-dish', 44], kiosk: ['m-dome', 90], shop: ['m-hab', 150], office: ['m-greenhouse', 210], tower: ['m-rocket', 170] }, vspr: { rover: ['m-rover', 60], shuttle: ['m-shuttle', 110] }, flat: true, organic: { w: 62, col: '#6c6f78', edge: '#4f525a', tyre: 1 } },
 };
@@ -177,7 +177,7 @@ function placeVehicle(o) {
 // Angled camera: the ground is foreshortened by TILT; buildings/props are upright sprites.
 const TILT = 0.74;
 const SPR = {};
-const SPR_NAMES = ['v-bus', 'b-tram', 'b-nboat', 'v-hay', 'v-postbox', 'v-flowers', 'v-tractor', 'd-palm', 'd-crate', 'd-hut', 'd-boat', 'd-raptor', 'd-trike', 'd-stego', 'd-brachio', 'd-lighthouse', 'd-volcano', 'm-rock', 'm-crate', 'm-dish', 'm-solar', 'm-rover', 'm-shuttle', 'm-dome', 'm-rocket', 'm-hab', 'm-greenhouse', 'hr-glass', 'hr-stone', 'hr-dark', 'car-side', 'car-front', 'car-rear', 'taxi-side', 'taxi-front', 'taxi-rear', 'bus-side', 'bus-front', 'bus-rear', 'office-glass', 'office-stone', 'office-grey', 'tower', 'shop', 'kiosk', 'tree', 'car', 'taxi', 'bus', 'bin', 'lamp', 'bench', 'cone'];
+const SPR_NAMES = ['v-oak', 'c-sheep', 'c-crab', 'c-alien', 'v-bus', 'b-tram', 'b-nboat', 'v-hay', 'v-postbox', 'v-flowers', 'v-tractor', 'd-palm', 'd-crate', 'd-hut', 'd-boat', 'd-raptor', 'd-trike', 'd-stego', 'd-brachio', 'd-lighthouse', 'd-volcano', 'm-rock', 'm-crate', 'm-dish', 'm-solar', 'm-rover', 'm-shuttle', 'm-dome', 'm-rocket', 'm-hab', 'm-greenhouse', 'hr-glass', 'hr-stone', 'hr-dark', 'car-side', 'car-front', 'car-rear', 'taxi-side', 'taxi-front', 'taxi-rear', 'bus-side', 'bus-front', 'bus-rear', 'office-glass', 'office-stone', 'office-grey', 'tower', 'shop', 'kiosk', 'tree', 'car', 'taxi', 'bus', 'bin', 'lamp', 'bench', 'cone'];
 function loadSprites() {
   return Promise.all(SPR_NAMES.map(n => new Promise(res => { const i = new Image(); i.onload = () => { SPR[n] = i; res(); }; i.onerror = res; i.src = 'assets/sprites/' + n + '.png'; })));
 }
@@ -205,9 +205,33 @@ function makePatterns(ctx) {
   const pave = noiseCanvas(64, G.pave, 10, (x, s) => { if (THEME === 'desert' || THEME === 'moon') return craters(x, s); x.strokeStyle = 'rgba(90,85,80,.35)'; x.lineWidth = 1.2; for (let i = 0; i <= s; i += 16) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, s); x.moveTo(0, i); x.lineTo(s, i); x.stroke(); } });
   const plaza = noiseCanvas(96, G.plaza, 10, (x, s) => { if (THEME !== 'city' && THEME !== 'district') return craters(x, s); x.strokeStyle = 'rgba(120,105,90,.3)'; x.lineWidth = 1.5; for (let i = 0; i <= s; i += 24) { x.beginPath(); x.moveTo(i, 0); x.lineTo(i, s); x.moveTo(0, i); x.lineTo(s, i); x.stroke(); } x.fillStyle = 'rgba(160,140,120,.25)'; x.fillRect(0, 0, 24, 24); x.fillRect(48, 48, 24, 24); });
   const grass = noiseCanvas(96, G.grass, 30, (x, s) => { for (let i = 0; i < 200; i++) { x.fillStyle = `rgba(${Math.random() < .5 ? '40,90,30' : '150,200,100'},.25)`; x.fillRect(Math.random() * s, Math.random() * s, 2, 3); } });
-  PAT = { asph: ctx.createPattern(asph, 'repeat'), pave: ctx.createPattern(pave, 'repeat'), plaza: ctx.createPattern(plaza, 'repeat'), grass: ctx.createPattern(grass, 'repeat') };
+  PAT = {};
+  const O = { village: [[92, 140, 62], [118, 160, 78], [150, 128, 84], [184, 160, 116]], desert: [[226, 202, 150], [236, 216, 170], [244, 230, 196], [214, 188, 136]], moon: [[132, 132, 138], [156, 156, 162], [104, 104, 112], [96, 98, 106]] }[THEME];
+  if (O) {
+    const blade = (x, s, R) => { for (let i = 0; i < 900; i++) { const px = R() * s, py = R() * s; x.strokeStyle = R() < .5 ? 'rgba(40,80,20,.35)' : 'rgba(190,220,120,.3)'; x.lineWidth = 1; x.beginPath(); x.moveTo(px, py); x.lineTo(px + (R() - .5) * 3, py - 3 - R() * 4); x.stroke(); } };
+    const ripple = (x, s, R) => { x.strokeStyle = 'rgba(150,115,60,.18)'; x.lineWidth = 2; for (let i = 0; i < 26; i++) { const y = R() * s; x.beginPath(); for (let k = 0; k <= s; k += 8) x.lineTo(k, y + Math.sin(k / 22 + i) * 4); x.stroke(); } };
+    const pebble = (x, s, R) => { for (let i = 0; i < 260; i++) { x.fillStyle = R() < .5 ? 'rgba(60,45,30,.25)' : 'rgba(255,245,225,.22)'; x.beginPath(); x.ellipse(R() * s, R() * s, 1 + R() * 2.5, 1 + R() * 1.8, R() * 3, 0, 7); x.fill(); } };
+    const pits = (x, s, R) => { for (let i = 0; i < 26; i++) { const px = R() * s, py = R() * s, r = 2 + R() * 10; x.fillStyle = 'rgba(40,40,50,.22)'; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill(); x.strokeStyle = 'rgba(255,255,255,.2)'; x.lineWidth = 1.5; x.beginPath(); x.arc(px - 1, py - 1, r, 3.4, 5.6); x.stroke(); } pebble(x, s, R); };
+    const ground = THEME === 'village' ? blade : THEME === 'desert' ? ripple : pits;
+    PAT.obase = ctx.createPattern(richTex(256, O[0], 11, ground), 'repeat');
+    PAT.oclear = ctx.createPattern(richTex(256, O[1], 23, ground), 'repeat');
+    PAT.ofield = ctx.createPattern(richTex(256, O[2], 37, THEME === 'village' ? (x, s, R) => { x.strokeStyle = 'rgba(80,60,30,.35)'; x.lineWidth = 5; for (let k = 0; k < s; k += 16) { x.beginPath(); x.moveTo(k, 0); x.lineTo(k, s); x.stroke(); } pebble(x, s, R); } : ground), 'repeat');
+    PAT.opath = ctx.createPattern(richTex(128, O[3], 51, pebble), 'repeat');
+  }
+  Object.assign(PAT, { asph: ctx.createPattern(asph, 'repeat'), pave: ctx.createPattern(pave, 'repeat'), plaza: ctx.createPattern(plaza, 'repeat'), grass: ctx.createPattern(grass, 'repeat') });
 }
 
+// layered painterly texture: soft light/dark blotches at several scales + fine detail strokes
+function richTex(size, base, seed, detail) {
+  const c = noiseCanvas(size, base, 10), x = c.getContext('2d'); let r = seed;
+  const R = () => (r = (r * 16807) % 2147483647) / 2147483647;
+  for (const [n, rad, a] of [[14, 60, .10], [40, 26, .09], [160, 8, .08]]) for (let i = 0; i < n; i++) {
+    const px = R() * size, py = R() * size, rr = rad * (0.6 + R()), lt = R() < .5, g = x.createRadialGradient(px, py, 0, px, py, rr);
+    g.addColorStop(0, lt ? `rgba(255,248,220,${a})` : `rgba(20,25,10,${a})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    for (const ox of [-size, 0, size]) for (const oy of [-size, 0, size]) { x.save(); x.translate(ox, oy); x.fillStyle = g; x.fillRect(px - rr, py - rr, rr * 2, rr * 2); x.restore(); }
+  }
+  if (detail) detail(x, size, R); return c;
+}
 function craters(x, s) {
   for (let i = 0; i < (THEME === 'moon' ? 6 : 30); i++) { const r = THEME === 'moon' ? 3 + Math.random() * 8 : 1 + Math.random() * 2, px = Math.random() * s, py = Math.random() * s;
     x.fillStyle = THEME === 'moon' ? 'rgba(40,40,50,.25)' : THEME === 'village' ? 'rgba(60,110,40,.3)' : 'rgba(150,120,70,.25)'; x.beginPath(); x.arc(px, py, r, 0, 7); x.fill();
@@ -258,29 +282,34 @@ function drawCanal(ctx) {
 }
 function drawOrganicGround(ctx, city, view) {
   const S = W.SIZE, O = TH().organic;
-  ctx.fillStyle = THEME === 'village' ? PAT.grass : PAT.pave; ctx.fillRect(-600, -600, S + 1200, S + 1200);
-  // clearings
+  ctx.fillStyle = PAT.obase; ctx.fillRect(-600, -600, S + 1200, S + 1200);
+  const blob = (b, grow) => { ctx.beginPath(); ctx.ellipse(0, 0, b.rx + grow, b.ry + grow, 0, 0, 7); };
   for (const b of city.blocks) {
-    if (b.cx + b.rx + 40 < view.x0 || b.cx - b.rx - 40 > view.x1 || b.cy + b.ry + 40 < view.y0 || b.cy - b.ry - 40 > view.y1) continue;
-    let fill = PAT.plaza;
-    if (THEME === 'village') fill = b.kind === 'green' || b.kind === 'park' ? '#7fbf5e' : b.field ? '#a38a52' : b.kind === 'shops' ? '#8fb56a' : PAT.plaza;
-    if (THEME === 'desert') fill = b.field ? '#f6e8c2' : b.kind === 'park' ? '#9cc06a' : '#e6cc92';
-    if (THEME === 'moon') fill = b.field ? '#8a8b92' : '#a9aab0';
+    if (b.cx + b.rx + 60 < view.x0 || b.cx - b.rx - 60 > view.x1 || b.cy + b.ry + 60 < view.y0 || b.cy - b.ry - 60 > view.y1) continue;
+    const fill = b.field ? PAT.ofield : PAT.oclear;
     ctx.save(); ctx.translate(b.cx, b.cy); ctx.rotate(b.rot);
-    ctx.fillStyle = 'rgba(0,0,0,.08)'; ctx.beginPath(); ctx.ellipse(0, 0, b.rx + 10, b.ry + 10, 0, 0, 7); ctx.fill();
-    ctx.fillStyle = fill; ctx.beginPath(); ctx.ellipse(0, 0, b.rx, b.ry, 0, 0, 7); ctx.fill();
-    if (THEME === 'village' && b.field) { ctx.strokeStyle = 'rgba(90,70,35,.45)'; ctx.lineWidth = 6; ctx.beginPath(); ctx.ellipse(0, 0, b.rx, b.ry, 0, 0, 7); ctx.clip(); for (let x = -b.rx; x < b.rx; x += 22) { ctx.moveTo(x, -b.ry); ctx.lineTo(x + 30, b.ry); } ctx.stroke(); }
-    if (THEME === 'moon' && b.field) { for (const [u, v, r] of [[-60, -30, 60], [70, 40, 46], [10, 90, 30]]) { ctx.fillStyle = '#5d5e66'; ctx.beginPath(); ctx.ellipse(u, v, r, r * 0.8, 0, 0, 7); ctx.fill(); ctx.strokeStyle = '#c4c5cb'; ctx.lineWidth = 5; ctx.beginPath(); ctx.ellipse(u, v, r, r * 0.8, 0, 3.3, 5.9); ctx.stroke(); } }
-    if (THEME === 'desert' && b.field) { ctx.fillStyle = 'rgba(80,170,200,.55)'; ctx.beginPath(); ctx.ellipse(b.rx * 0.35, b.ry * 0.3, b.rx * 0.4, b.ry * 0.3, 0.3, 0, 7); ctx.fill(); }
+    // feathered edge: a few widening translucent passes
+    for (let k = 3; k >= 1; k--) { ctx.globalAlpha = 0.22; ctx.fillStyle = fill; blob(b, k * 10); ctx.fill(); }
+    ctx.globalAlpha = 1; ctx.fillStyle = fill; blob(b, 0); ctx.fill();
+    // soft inner shading for depth
+    const g = ctx.createRadialGradient(-b.rx * .3, -b.ry * .35, 10, 0, 0, Math.max(b.rx, b.ry));
+    g.addColorStop(0, 'rgba(255,250,225,.16)'); g.addColorStop(1, 'rgba(30,25,10,.14)'); ctx.fillStyle = g; blob(b, 0); ctx.fill();
+    if (THEME === 'moon' && b.field) for (const [u, v, r] of [[-60, -30, 60], [70, 40, 46], [10, 90, 30]]) {
+      const cg = ctx.createRadialGradient(u - r * .3, v - r * .3, r * .1, u, v, r); cg.addColorStop(0, '#55565e'); cg.addColorStop(.85, '#76777f'); cg.addColorStop(1, 'rgba(190,190,198,.9)');
+      ctx.fillStyle = cg; ctx.beginPath(); ctx.ellipse(u, v, r, r * .8, 0, 0, 7); ctx.fill(); }
+    if (THEME === 'desert' && b.field) { const wg = ctx.createRadialGradient(b.rx * .35, b.ry * .3, 4, b.rx * .35, b.ry * .3, b.rx * .45); wg.addColorStop(0, 'rgba(60,170,190,.85)'); wg.addColorStop(.7, 'rgba(90,190,200,.6)'); wg.addColorStop(1, 'rgba(240,230,200,0)'); ctx.fillStyle = wg; ctx.beginPath(); ctx.ellipse(b.rx * .35, b.ry * .3, b.rx * .45, b.ry * .34, .3, 0, 7); ctx.fill(); }
     ctx.restore();
-    if (b.pond) { const g = ctx.createRadialGradient(b.pond.x - 20, b.pond.y - 15, 5, b.pond.x, b.pond.y, b.pond.rx); g.addColorStop(0, b.crater ? '#8e8e94' : '#7fd0ea'); g.addColorStop(1, b.crater ? '#4c4c55' : '#2f7fa8'); ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(b.pond.x, b.pond.y, b.pond.rx, b.pond.ry, 0, 0, 7); ctx.fill(); }
+    if (b.pond) { const g2 = ctx.createRadialGradient(b.pond.x - 20, b.pond.y - 15, 5, b.pond.x, b.pond.y, b.pond.rx); g2.addColorStop(0, b.crater ? '#8e8e94' : '#86c9d8'); g2.addColorStop(.8, b.crater ? '#4c4c55' : '#3b7f95'); g2.addColorStop(1, b.crater ? '#9a9aa2' : '#5c6d4a');
+      ctx.fillStyle = g2; ctx.beginPath(); ctx.ellipse(b.pond.x, b.pond.y, b.pond.rx, b.pond.ry, 0, 0, 7); ctx.fill(); }
   }
-  // tracks
+  // tracks: soft dark verge, textured surface, worn centre
   ctx.lineCap = ctx.lineJoin = 'round';
-  for (const [w, col] of [[O.w + 12, O.edge], [O.w, O.col]]) { ctx.strokeStyle = col; ctx.lineWidth = w; for (const p of city.paths) { ctx.beginPath(); p.pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke(); } }
-  ctx.setLineDash(O.tyre ? [] : [2, 26]); ctx.strokeStyle = O.tyre ? 'rgba(40,42,50,.5)' : 'rgba(255,255,255,.18)'; ctx.lineWidth = O.tyre ? 4 : 8;
+  const trace = p => { ctx.beginPath(); p.pts.forEach((q, i) => i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke(); };
+  for (const [w, st, a] of [[O.w + 22, 'rgba(40,30,15,1)', .08], [O.w + 10, 'rgba(40,30,15,1)', .12], [O.w, PAT.opath, 1]]) { ctx.globalAlpha = a; ctx.strokeStyle = st; ctx.lineWidth = w; city.paths.forEach(trace); }
+  ctx.globalAlpha = 1;
+  if (O.tyre) { ctx.strokeStyle = 'rgba(40,42,50,.35)'; ctx.lineWidth = 6; }
+  else { ctx.strokeStyle = THEME === 'village' ? 'rgba(90,130,50,.35)' : 'rgba(255,250,235,.18)'; ctx.lineWidth = THEME === 'village' ? 8 : 18; }
   for (const p of city.paths) for (const off of O.tyre ? [-14, 14] : [0]) { ctx.beginPath(); p.pts.forEach((q, i, a) => { const n = a[Math.min(i + 1, a.length - 1)], m = a[Math.max(i - 1, 0)], dx = n[0] - m[0], dy = n[1] - m[1], l = Math.hypot(dx, dy) || 1, x = q[0] - dy / l * off, y = q[1] + dx / l * off; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); }
-  ctx.setLineDash([]);
 }
 // soft ground shadows for upright things (ground transform)
 function drawShadow(ctx, o) {
@@ -366,8 +395,11 @@ function drawPed(ctx, p, t) {
   ctx.fillStyle = ['#f1c9a5', '#c68e65', '#8d5a3b', '#e8b98f'][p.col % 4]; ctx.beginPath(); ctx.arc(0, -24, 4, 0, 7); ctx.fill();
   ctx.fillStyle = ['#3a2a1e', '#1d1d1d', '#a0622c', '#d8b25a'][p.col % 4]; ctx.beginPath(); ctx.arc(0, -25, 4, Math.PI, 0); ctx.fill();
 }
+const CRIT = { sheep: ['c-sheep', 26], crab: ['c-crab', 20], alien: ['c-alien', 13] };
 function drawBird(ctx, b, t) {
-  ctx.fillStyle = 'rgba(10,15,30,.25)'; ctx.beginPath(); ctx.ellipse(0, 2, 6, 2.5, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = 'rgba(10,15,30,.25)'; ctx.beginPath(); ctx.ellipse(0, 2, 8, 3, 0, 0, 7); ctx.fill();
+  const cs = CRIT[b.kind], im = cs && SPR[cs[0]];
+  if (im) { const w = cs[1], h = w * im.height / im.width, bob = Math.abs(Math.sin(t * 5 + b.hx)) * 1.5; ctx.save(); if ((b.vx || 0) < 0) ctx.scale(-1, 1); ctx.drawImage(im, -w / 2, -h - bob + 2, w, h); ctx.restore(); return; }
   if (b.kind === 'sheep') {
     ctx.fillStyle = '#f2efe6'; for (const [x, y, r] of [[-5, -8, 6], [2, -10, 7], [7, -7, 5], [-1, -5, 6]]) { ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); }
     ctx.fillStyle = '#2b2622'; ctx.beginPath(); ctx.ellipse(12, -10, 3.5, 4.5, 0.3, 0, 7); ctx.fill(); ctx.fillRect(-4, -3, 2, 4); ctx.fillRect(5, -3, 2, 4);

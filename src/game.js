@@ -509,5 +509,6 @@ function frame(now) {
   if (perfT > 1500) { const fps = perfN * 1000 / perfT; perfN = 0; perfT = 0; window.__mollyFps = fps;
     if (fps < 50 && resScale > 0.6) { resScale = Math.max(0.6, resScale - 0.2); resize(); } }
 }
-newWorld(); refreshStars(); Promise.all([loadSprites(), loadTextures()]).then(() => requestAnimationFrame(frame));
+newWorld(); refreshStars(); hide('home'); show('map'); buildMap(); // always open on the levels map
+Promise.all([loadSprites(), loadTextures()]).then(() => requestAnimationFrame(frame));
 })();
