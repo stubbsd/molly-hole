@@ -291,7 +291,7 @@ function update(dt) {
     if (dd > hole.R + o.r + 10) { o.wob = Math.max(0, o.wob - dt); continue; }
     // fits = its size tier is allowed OR (small street prop) its footprint is clearly smaller than the hole;
     // goes in once its centre is over the hole (was: had to sit almost fully inside, so trees/bins on the rim refused)
-    const fits = o.size <= hole.level || (!o.moving && !is3D(o) && !o.landmark && o.r * 1.1 < hole.R);
+    const fits = o.size <= hole.level || (!is3D(o) && !o.landmark && o.r * (o.moving ? 1.2 : 1.1) < hole.R); // cars too, once their body clearly fits
     if (fits && dd < hole.R * 0.9) {
       if (mode === 'order' && !orderMatch(o)) { // wrong thing: gently pops back out, no penalty
         if (!o.moving) { const ux = dd > 1 ? (o.x - hole.x) / dd : 1, uy = dd > 1 ? (o.y - hole.y) / dd : 0; o.x = hole.x + ux * (hole.R + o.r + 6); o.y = hole.y + uy * (hole.R + o.r + 6); }
@@ -315,7 +315,7 @@ function update(dt) {
     const q = respawnQ[i]; if (time < q.at) continue;
     if (Math.hypot(q.o.x - hole.x, q.o.y - hole.y) > hole.R + q.o.r + 250) { q.o.state = 'idle'; q.o.ft = 0; q.o.pop = 1; objs.push(q.o); respawnQ.splice(i, 1); }
   }
-  updateParts(dt); for (let i = angels.length - 1; i >= 0; i--) if ((angels[i].t += dt) > 2.6) angels.splice(i, 1); for (let i = pops.length - 1; i >= 0; i--) if ((pops[i].t += dt) > 0.9) pops.splice(i, 1);
+  updateParts(dt); for (let i = pops.length - 1; i >= 0; i--) if ((pops[i].t += dt) > 0.9) pops.splice(i, 1);
   if (mode === 'timed' && !ringDone && !ending) {
     ringT += dt; $('ring').style.setProperty('--p', Math.min(100, ringT / RING_T * 100).toFixed(1) + '%');
     if (ringT >= RING_T) { ringDone = true; paused = true; fingerDown = false; activeId = null; hideStick(); show('timeup'); } // nothing fails: Continue or Exit
@@ -346,23 +346,15 @@ function autoSteer() {
   }
   if (best) { hole.tx = clamp(best.x, 30, W.SIZE - 30); hole.ty = clamp(best.y, 30, W.SIZE - 30); }
 }
-window.__molly = { vehicles: () => vehicles.map(v => ({ type: v.type, vspr: v.vspr || null, x: v.x, y: v.y, angle: v.angle, dir: v.lane.dir, state: v.state })), get orderIdx() { return orderIdx; }, get ring() { return ringT; }, goMap: () => goMap(), get coins() { return save.coins; }, hole, get mode() { return mode; }, get playing() { return playing; }, get paused() { return paused; }, get nParts() { return parts.length; }, birds: () => birds.map(b => ({ x: b.x, y: b.y, kind: b.kind })), fw: () => firework(), start: (m, w) => startGame(m, w), get time() { return time; }, get camS() { return cam.s; }, get angels() { return angels.length; }, peds: () => peds.map(p => ({ x: p.x, y: p.y })), get swallowed() { return swallowed; }, get scored() { return scored; }, get pts() { return hole.pts; }, get level() { return hole.level; }, targets: () => objs.concat(vehicles).filter(o => o.state === 'idle').map(o => ({ x: o.x, y: o.y, size: o.size, type: o.type, lm: !!o.landmark })), toScreen: (x, y) => { const p = P3(x, y, 0), W2 = cv.width, H2 = cv.height, k = PJ.k, zr = p[1] - PJ.ocy, f = 1 / (1 - zr * k); return [(W2 / 2 + (p[0] - PJ.ocx) * f) / dpr, (H2 / 2 + zr * f) / dpr]; } };
+window.__molly = { vehicles: () => vehicles.map(v => ({ type: v.type, vspr: v.vspr || null, x: v.x, y: v.y, angle: v.angle, dir: v.lane.dir, state: v.state })), get orderIdx() { return orderIdx; }, get ring() { return ringT; }, goMap: () => goMap(), get coins() { return save.coins; }, hole, get mode() { return mode; }, get playing() { return playing; }, get paused() { return paused; }, get nParts() { return parts.length; }, birds: () => birds.map(b => ({ x: b.x, y: b.y, kind: b.kind })), fw: () => firework(), start: (m, w) => startGame(m, w), get time() { return time; }, get camS() { return cam.s; }, get angels() { return 0; }, peds: () => peds.map(p => ({ x: p.x, y: p.y })), get swallowed() { return swallowed; }, get scored() { return scored; }, get pts() { return hole.pts; }, get level() { return hole.level; }, targets: () => objs.concat(vehicles).filter(o => o.state === 'idle').map(o => ({ x: o.x, y: o.y, size: o.size, type: o.type, lm: !!o.landmark })), toScreen: (x, y) => { const p = P3(x, y, 0), W2 = cv.width, H2 = cv.height, k = PJ.k, zr = p[1] - PJ.ocy, f = 1 / (1 - zr * k); return [(W2 / 2 + (p[0] - PJ.ocx) * f) / dpr, (H2 / 2 + zr * f) / dpr]; } };
 function startFall(o) {
   o.state = 'fall'; o.ft = 0; o.dur = 0.6 + o.size * 0.1; o.sx = o.x; o.sy = o.y; o.spin = (Math.random() - 0.5) * 2.4; falling.push(o);
-  if (o.critter && o.ped) Sfx.angel(); else if (o.critter) { Sfx.scream(true); Sfx.loser(); } else Sfx.swallow(o.size, save.skin);
+  if (o.critter && o.ped) Sfx.yippee(); else if (o.critter) { Sfx.scream(true); Sfx.loser(); } else Sfx.swallow(o.size, save.skin);
   if (parts.length < MAXP - 20) { const sk = SKINS.find(s => s.id === save.skin); for (let i = 0; i < 0; i++) { const a = i / (6 + o.size) * 6.283; parts.push({ x: o.x, y: o.y, vx: Math.cos(a) * (120 + o.size * 25), vy: Math.sin(a) * (120 + o.size * 25), life: 0.5, col: i % 2 ? sk.rim[0] : '#ffffff', sz: 2 + o.size * 0.6 }); } }
 }
-let swallowed = 0, scored = 0; const pops = [], angels = [];
-// angel look: soft white wings behind, the person, a gold halo on top (gentle, cheerful)
-function drawAngel(ctx, p, t) {
-  const f = Math.sin(t * 9) * 0.25; ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#cfd8ff'; ctx.lineWidth = 1.5;
-  for (const sd of [-1, 1]) { ctx.save(); ctx.translate(sd * 3, -16); ctx.rotate(sd * (0.5 + f)); ctx.beginPath(); ctx.ellipse(sd * 8, 0, 9, 5, 0, 0, 7); ctx.fill(); ctx.stroke(); ctx.restore(); }
-  drawPed(ctx, p, t);
-  ctx.strokeStyle = '#ffd84a'; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(0, -34, 6, 2.2, 0, 0, 7); ctx.stroke();
-}
+let swallowed = 0, scored = 0; const pops = [];
 function finishFall(o) {
   swallowed++;
-  if (o.critter && o.ped && angels.length < 6) { angels.push({ p: o.critter, x: hole.x, y: hole.y, t: 0 }); Sfx.rise(); } // angel rises back out of the hole
   if (o.critter) { critterQ.push({ f: o, at: time + 15 }); hole.pts += 1; scored++; hole.gulp = 0.5; checkLevel(); updateHud(); return; }
   if (o.moving) { o.state = 'idle'; o.along = o.speed > 0 ? -90 : W.SIZE + 90; placeVehicle(o); o.lane = city.lanes[Math.floor(Math.random() * city.lanes.length)]; o.speed = Math.abs(o.speed) * o.lane.sgn; placeVehicle(o); }
   else { const i = objs.indexOf(o); if (i >= 0) objs.splice(i, 1); o.x = o.sx; o.y = o.sy; if (mode === 'free') respawnQ.push({ o, at: time + 20 + Math.random() * 15 }); }
@@ -482,8 +474,8 @@ function render() {
       ctx.save(); ctx.globalAlpha = 1;
       if (is3D(o)) { drawBuilding3D(ctx, o, ft * ft * bDims(o).h * 1.1, (hole.x - o.sx) * sl, (hole.y - o.sy) * sl); ctx.restore(); continue; }
       ctx.translate(bx, by0 - hop + drop); ctx.rotate(ft * o.spin); const sc = 1; ctx.scale(sc / Math.sqrt(sq), sc * sq);
-      if (o.type === 'coin' || o.type === 'gift') drawPickup(ctx, o, time); else if (o.critter) { if (o.ped) drawAngel(ctx, o.critter, time); else drawBird(ctx, o.critter, time); }
-      else if (o.moving) drawVehicleUp(ctx, o); else { const sb = spriteBox(o); if (sb) ctx.drawImage(sb.img, -sb.w / 2, -sb.h, sb.w, sb.h); }
+      if (o.type === 'coin' || o.type === 'gift') drawPickup(ctx, o, time); else if (o.critter) { if (o.ped) drawPed(ctx, o.critter, time); else drawBird(ctx, o.critter, time); }
+      else if (o.moving) { const tp = Math.min(1, t * 1.6); ctx.rotate((o.spin > 0 ? 1 : -1) * tp * 0.9); ctx.scale(1, 1 - 0.45 * tp); drawVehicleUp(ctx, o); } // rigid tip: rolls onto its side and noses down into the hole else { const sb = spriteBox(o); if (sb) ctx.drawImage(sb.img, -sb.w / 2, -sb.h, sb.w, sb.h); }
       ctx.restore();
     }
     // inner darkness over the sunk part so it reads as depth
@@ -526,10 +518,6 @@ function render() {
   G();
   for (const p of parts) { ctx.globalAlpha = Math.max(0, Math.min(1, p.life * 1.5)); ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.x, p.y, p.sz, 0, 7); ctx.fill(); }
   ctx.globalAlpha = 1;
-  if (angels.length) { U(); for (const a of angels) { // rise out of the hole and float up to heaven, swaying, then fade
-    const k = a.t / 2.6, up = k * k * 260 + k * 60, sc = 1.5 - k * 0.3; ctx.save(); ctx.translate(a.x + Math.sin(a.t * 3) * 10, a.y * TILT - up);
-    ctx.globalAlpha = Math.min(1, a.t * 4) * (1 - Math.max(0, k - 0.6) / 0.4); ctx.fillStyle = 'rgba(255,246,190,.35)'; ctx.beginPath(); ctx.arc(0, -18, 22, 0, 7); ctx.fill();
-    ctx.scale(sc, sc); drawAngel(ctx, a.p, time + a.t); ctx.restore(); } ctx.globalAlpha = 1; G(); }
   if (playing || ending) { // ref-video HUD-in-world: "Size N" label above the hole, growth bar below, "+N" pops
     U(); const fs = Math.max(16, hole.R * 0.42), hx = hole.x, hyy = hole.y * TILT;
     ctx.font = `900 ${fs}px system-ui,sans-serif`; ctx.textAlign = 'center'; ctx.lineJoin = 'round';

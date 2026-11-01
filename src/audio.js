@@ -7,6 +7,7 @@ const Sfx = (() => {
     ctx = new AC(); master = ctx.createGain(); master.gain.value = muted ? 0 : 0.5; master.connect(ctx.destination);
     // bundled original clip (precached by the SW, so it works offline); callback decode for older Safari
     fetch('assets/sfx-loser.mp3').then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b, d => { LOSER = d; }, () => {})).catch(() => {});
+    fetch('assets/sfx-yippee.mp3').then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b, d => { YIP = d; }, () => {})).catch(() => {});
     musicGain = ctx.createGain(); musicGain.gain.value = 0.11; // kept well under the swallow/scream SFX (0.15-0.35 on master) musicGain.connect(master);
   }
   function tone(freq, dur, type = 'sine', vol = 0.3, slideTo = null, when = 0, dest = null) {
@@ -16,6 +17,10 @@ const Sfx = (() => {
     g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g); g.connect(dest || master); o.start(t); o.stop(t + dur + 0.05);
   }
+  let YIP = null, yipBusy = false, lastYip = 0;
+  // people dropping in shout a squeaky "Yippee!": one at a time, at most every 1.2s
+  function yippee() { if (!ctx || muted || !YIP || yipBusy) return; const n = performance.now(); if (n - lastYip < 1200) return; lastYip = n; yipBusy = true;
+    const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = YIP; s.playbackRate.value = 0.95 + Math.random() * 0.15; g.gain.value = 0.7; s.connect(g); g.connect(master); s.onended = () => { yipBusy = false; }; s.start(ctx.currentTime + 0.05); }
   let LOSER = null, loserBusy = false, lastLoser = 0;
   // silly "I'm a loser!" as things drop in: one at a time, at most every 1.6s, so mashing never stacks it
   function loser() { if (!ctx || muted || !LOSER || loserBusy) return; const n = performance.now(); if (n - lastLoser < 1600) return; lastLoser = n; loserBusy = true;
@@ -44,10 +49,7 @@ const Sfx = (() => {
     o.start(t); lfo.start(t); o.stop(t + dur + 0.02); lfo.stop(t + dur + 0.02);
   }
   return {
-    init, scream, loser,
-    // pedestrians: soft twinkly chime as they turn into angels, then a gentle rising "wheee" as they float up
-    angel() { if (muted) return; [1047, 1319, 1568, 2093].forEach((f, i) => tone(f, 0.4, 'sine', 0.07, null, i * 0.06)); },
-    rise() { if (muted) return; tone(660, 0.7, 'sine', 0.08, 1320); tone(1320, 0.5, 'triangle', 0.03, 2640, 0.1); },
+    init, scream, loser, yippee,
     swallow(size, skin) {
       const n = performance.now(); if (n - lastSw < 70) return; lastSw = n; // dense parks: don't stack dozens of voices
       const base = 520 / (1 + size * 0.45);
